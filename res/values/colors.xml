@@ -3,4 +3,6 @@
 
     <color name="background_gray">#ededed</color>
 
+    <color name="main_tabTextColor_blue">#00BFFF</color>
+    
 </resources>

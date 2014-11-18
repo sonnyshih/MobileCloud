@@ -20,8 +20,8 @@
     
     <style name="Theme.MobileCloud" parent="AppBaseTheme">
         <!-- <item name="android:actionBarItemBackground">@drawable/action_bar_button_selector</item>  -->
-        <!--
         <item name="android:icon">@android:color/transparent</item>
+        <!--
         <item name="android:actionBarStyle">@style/customer.ActionBar</item>
         <item name="android:actionModeStyle">@style/ActionMode</item>
         <item name="android:popupMenuStyle">@style/PopupMenu.</item>

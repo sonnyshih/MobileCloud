@@ -7,9 +7,6 @@ import java.net.UnknownHostException;
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceEvent;
 import javax.jmdns.ServiceListener;
-
-import android.util.Log;
-
 import com.sonnyshih.mobilecloud.util.StringUtil;
 
 public class BonjourManage {
@@ -31,8 +28,6 @@ public class BonjourManage {
 
 		InetAddress inetAddress;
 
-		Log.d("Mylog", "ipAddress="+ipAddress);
-		
 		if (!StringUtil.isEmpty(ipAddress)) {
 			try {
 				bonjourServiceListener = new BonjourServiceListener();
@@ -42,14 +37,12 @@ public class BonjourManage {
 				jmDNS.addServiceListener(DRIVE_TYPE, bonjourServiceListener);
 			} catch (UnknownHostException e) {
 				e.printStackTrace();
-				Log.d("Mylog", "UnknownHostException="+e.getMessage());
 			} catch (IOException e) {
 				e.printStackTrace();
-				Log.d("Mylog", "IOException="+e.getMessage());
 			}
 
 		} else {
-			bonjourHanlder.onError("Can get the ip address");
+			bonjourHanlder.doErrorExcute("Can get the ip address");
 		}
 
 	}
@@ -71,7 +64,6 @@ public class BonjourManage {
 		}// End serviceRemoved
 
 		public void serviceResolved(ServiceEvent event) {
-			Log.d("Mylog", "event=");
 			String ip = event.getInfo().getPropertyString("ip");
 			String port = event.getInfo().getPropertyString("port");
 			String mac = event.getInfo().getPropertyString("mac");
@@ -86,22 +78,6 @@ public class BonjourManage {
 				jmDNS.removeServiceListener(DRIVE_TYPE, bonjourServiceListener);
 			}
 			
-//			if (event.getInfo().getType().equals(ROUTER_TYPE)) {
-////				ApplicationManager.getInstance().setRouterIp(ip);
-////				ApplicationManager.getInstance().setRouterPort(port);
-////				ApplicationManager.getInstance().setRouterMac(mac);
-////				bonjourHanlder.doRouterExcute(ip, port, mac);
-//				Log.d("Mylog", "r-ip="+ip);
-//			}
-//
-//			if (event.getInfo().getType().equals(DRIVE_TYPE)) {
-////				ApplicationManager.getInstance().setDriveIp(ip);
-////				ApplicationManager.getInstance().setDrivePort(port);
-////				ApplicationManager.getInstance().setDriveMac(mac);
-//				bonjourHanlder.doDriveExcute(ip, port, mac);
-//				Log.d("Mylog", "d-ip="+ip);
-//			}
-
 		}// End serviceResolved
 	}// End SampleListener
 	
@@ -109,7 +85,7 @@ public class BonjourManage {
 	public interface BonjourHanlder {
 		public void doRouterExcute(String routerIp, String routerPort, String routerMac);
 		public void doDriveExcute(String driveIp, String drivePort, String driveMac);
-		public void onError(String errorMessage);
+		public void doErrorExcute(String errorMessage);
 	}
 
 }

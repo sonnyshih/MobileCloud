@@ -18,7 +18,7 @@ public class AppleFragment extends Fragment{
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 		
-		View view = inflater.inflate(R.layout.apple_fragement, container, false);
+		View view = inflater.inflate(R.layout.device_fragement, container, false);
 		
 		return view;
 	}

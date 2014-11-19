@@ -37,7 +37,7 @@ public class MainActivity extends BaseFragmentActivity implements
 
 	private AlertDialog retryAlertDialog;
 	private BonjourManage bonjourManage;
-	private boolean isGetDriveIp = false;
+	public static boolean isGetDriveIp = false;
 	
 //	private RelativeLayout relativeLayout;
 //	private RelativeLayout imageLayout;
@@ -53,6 +53,8 @@ public class MainActivity extends BaseFragmentActivity implements
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main_activity);
 
+		showProgressDialog("Waiting", "Discovering the Mobile Cloud...");
+
 //		relativeLayout = (RelativeLayout) findViewById(R.id.start_relativeLayout);
 //		imageLayout = (RelativeLayout) findViewById(R.id.start_imageLayout);
 		// textView = (TextView) findViewById(R.id.main_textView);
@@ -65,8 +67,6 @@ public class MainActivity extends BaseFragmentActivity implements
 	@Override
 	protected void onResume() {
 		super.onResume();
-		
-		showProgressDialog("Waiting","Discovering the Mobile Cloud...");
 		isGetDriveIp = false;
 		bonjourManage = new BonjourManage(this);
 		bonjourManage.startBonjour();
@@ -231,10 +231,11 @@ public class MainActivity extends BaseFragmentActivity implements
 
 	
 	@Override
-	public void doRouterExcute(String routerIp, String routerPort, String routerMac) {
-		Log.d("Mylog", "routerIp="+routerIp);
+	public void doRouterExcute(String mobileCloudName, String routerIp, String routerPort, String routerMac) {
+		Log.d("Mylog", "mobileCloudName: "+mobileCloudName+" routerIp: "+routerIp);
 	
 		if (!StringUtil.isEmpty(routerIp)) {
+			ApplicationManager.getInstance().setRouterMobileCloudName(mobileCloudName);
 			ApplicationManager.getInstance().setRouterIp(routerIp);
 			ApplicationManager.getInstance().setRouterPort(routerPort);
 			ApplicationManager.getInstance().setRouterMac(routerMac);
@@ -242,10 +243,11 @@ public class MainActivity extends BaseFragmentActivity implements
 	}
 
 	@Override
-	public void doDriveExcute(String driveIp, String drivePort, String driveMac) {
-		Log.d("Mylog", "driveIp="+driveIp);
+	public void doDriveExcute(String mobileCloudName, String driveIp, String drivePort, String driveMac) {
+		Log.d("Mylog", "mobileCloudName: "+mobileCloudName+" driveIp: "+driveIp);
 
 		if (!StringUtil.isEmpty(driveIp)) {
+			ApplicationManager.getInstance().setDriveMobileCloudName(mobileCloudName);
 			ApplicationManager.getInstance().setDriveIp(driveIp);
 			ApplicationManager.getInstance().setDrivePort(drivePort);
 			ApplicationManager.getInstance().setDriveMac(driveMac);

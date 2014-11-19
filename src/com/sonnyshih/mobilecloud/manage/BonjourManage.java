@@ -64,17 +64,18 @@ public class BonjourManage {
 		}// End serviceRemoved
 
 		public void serviceResolved(ServiceEvent event) {
+			String mobileCloudName = event.getName();
 			String ip = event.getInfo().getPropertyString("ip");
 			String port = event.getInfo().getPropertyString("port");
 			String mac = event.getInfo().getPropertyString("mac");
 
 			if (event.getInfo().getType().equals(ROUTER_TYPE)) {
-				bonjourHanlder.doRouterExcute(ip, port, mac);
+				bonjourHanlder.doRouterExcute(mobileCloudName, ip, port, mac);
 				jmDNS.removeServiceListener(ROUTER_TYPE, bonjourServiceListener);
 			}
 			
 			if (event.getInfo().getType().equals(DRIVE_TYPE)) {
-				bonjourHanlder.doDriveExcute(ip, port, mac);
+				bonjourHanlder.doDriveExcute(mobileCloudName, ip, port, mac);
 				jmDNS.removeServiceListener(DRIVE_TYPE, bonjourServiceListener);
 			}
 			
@@ -83,8 +84,8 @@ public class BonjourManage {
 	
 	
 	public interface BonjourHanlder {
-		public void doRouterExcute(String routerIp, String routerPort, String routerMac);
-		public void doDriveExcute(String driveIp, String drivePort, String driveMac);
+		public void doRouterExcute(String mobileCloudName, String routerIp, String routerPort, String routerMac);
+		public void doDriveExcute(String mobileCloudName, String driveIp, String drivePort, String driveMac);
 		public void doErrorExcute(String errorMessage);
 	}
 

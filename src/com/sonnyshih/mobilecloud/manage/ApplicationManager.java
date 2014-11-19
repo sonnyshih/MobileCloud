@@ -9,10 +9,12 @@ public class ApplicationManager {
 	private static ApplicationManager instance;
 	private String localIp;
 	
+	private String routerMobileCloudName;
 	private String routerIp;
 	private String routerPort;
 	private String routerMac;
 	
+	private String driveMobileCloudName;
 	private String driveIp;
 	private String drivePort;
 	private String driveMac;
@@ -57,6 +59,14 @@ public class ApplicationManager {
 		this.localIp = localIp;
 	}
 
+	public String getRouterMobileCloudName() {
+		return routerMobileCloudName;
+	}
+
+	public void setRouterMobileCloudName(String routerMobileCloudName) {
+		this.routerMobileCloudName = routerMobileCloudName;
+	}
+
 	public String getRouterIp() {
 		return routerIp;
 	}
@@ -79,6 +89,14 @@ public class ApplicationManager {
 
 	public void setRouterMac(String routerMac) {
 		this.routerMac = routerMac;
+	}
+
+	public String getDriveMobileCloudName() {
+		return driveMobileCloudName;
+	}
+
+	public void setDriveMobileCloudName(String driveMobileCloudName) {
+		this.driveMobileCloudName = driveMobileCloudName;
 	}
 
 	public String getDriveIp() {

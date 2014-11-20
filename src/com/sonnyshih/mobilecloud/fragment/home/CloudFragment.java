@@ -1,7 +1,10 @@
 package com.sonnyshih.mobilecloud.fragment.home;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 import org.apache.jackrabbit.webdav.MultiStatusResponse;
 import org.apache.jackrabbit.webdav.property.DavProperty;
@@ -107,26 +110,52 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener{
 			@Override
 			public void run() {
 				
-				MultiStatusResponse[] multiStatusResponses = webDavManager.getFileList(path); 
+				// Translate the path string to UTF-8 string.
+				String utf8Path = StringUtil.getWebDavURLEncodeStr(path);
+				
+				MultiStatusResponse[] multiStatusResponses = webDavManager.getFileList(utf8Path); 
 				webDavItemEntities.clear();
+				
+				ArrayList<WebDavItemEntity> folders = new ArrayList<WebDavItemEntity>();
+				ArrayList<WebDavItemEntity> files = new ArrayList<WebDavItemEntity>();
 				
 				for (int i = 0; i < multiStatusResponses.length; i++) {
 					
 					if (i > 0) {	// ignore the first item.
+						
 						WebDavItemEntity webDavItemEntity = ganerateDavItemEntity(multiStatusResponses[i]);
-						webDavItemEntities.add(webDavItemEntity);
 						
-					} else {
-						
-						if (!StringUtil.isEmpty(currentPath)) {
-							WebDavItemEntity webDavItemEntity = new WebDavItemEntity(); 
-							webDavItemEntity.setType(ItemType.Other);
-							webDavItemEntity.setName("Up...");
-							webDavItemEntities.add(webDavItemEntity);
+						switch (webDavItemEntity.getType()) {
+						case Folder:
+							folders.add(webDavItemEntity);
+							break;
+
+						case File:
+							files.add(webDavItemEntity);
+							break;
+
+						default:
+							break;
 						}
 						
 					}
+					
 				}
+
+				// add the up arrow icon at the first position.
+				if (!StringUtil.isEmpty(currentPath)) {
+					WebDavItemEntity webDavItemEntity = new WebDavItemEntity(); 
+					webDavItemEntity.setType(ItemType.Up);
+					webDavItemEntity.setName("Up...");
+					webDavItemEntities.add(webDavItemEntity);
+				}
+				
+				Collections.sort(folders, new SortByName());	// Sort by Folder Name
+				Collections.sort(files, new SortByName());		// Sort by File Name
+				
+				// Merge the folder list and file list.
+				webDavItemEntities.addAll(folders);
+				webDavItemEntities.addAll(files);
 				
 			    getActivity().runOnUiThread(new Runnable() {
 			        @Override
@@ -134,7 +163,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener{
 			        	cloudFileListAdapter.notifyDataSetChanged();
 			    		progressBar.setVisibility(View.GONE);
 			    		fileListView.setVisibility(View.VISIBLE);
-
 			        }
 			    });
 				
@@ -143,6 +171,15 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener{
 		
 	}
 
+	class SortByName implements Comparator<WebDavItemEntity> {
+
+		@Override
+		public int compare(WebDavItemEntity lhs, WebDavItemEntity rhs) {
+			return lhs.getName().toString().compareToIgnoreCase(rhs.getName().toString());
+		}
+		
+	}
+	
 	private WebDavItemEntity ganerateDavItemEntity(MultiStatusResponse multiStatusResponse){
 		
 		WebDavItemEntity webDavItemEntity = new WebDavItemEntity();
@@ -169,7 +206,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener{
 		
 //		Log.d("Mylog","Type = " + type);
 
-		
 		// Get Create Date
 		davProperty = davPropertySet.get(DavPropertyName.PROPERTY_CREATIONDATE);
 		String createDate = davProperty.getValue().toString();
@@ -249,7 +285,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener{
 			
 			break;
 
-		case Other:
+		case Up:
 			showFileList(parentPath);
 			currentPath = parentPath;
 			
@@ -267,30 +303,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener{
 		Log.d("Mylog", "parentPath="+parentPath);
 		Log.d("Mylog", "currentPath="+currentPath);
 
-		
-//		if (itemName.equals("up")) {
-//			showFileList(parentPath);
-//			currentPath = parentPath;
-//			
-//			// File's parent path
-//			if (!currentPath.equals("")) {
-//				int index = currentPath.lastIndexOf("/");
-//				parentPath = currentPath.substring(0, index);
-//			}
-//			
-//			return;
-//		}
-		
-//		if (type.equals("folder")) {
-//			parentPath = currentPath; 
-//			currentPath += "/"+itemName;
-//
-//			Log.d("Mylog", "parentPath="+parentPath);
-//			Log.d("Mylog", "currentPath="+currentPath);
-//			showFileList(currentPath);
-//		}
-		
-		
 	}
 	
 }

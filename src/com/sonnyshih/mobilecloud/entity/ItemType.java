@@ -1,5 +1,5 @@
 package com.sonnyshih.mobilecloud.entity;
 
 public enum ItemType {
-	Folder, File, Other
+	Up, Folder, File, Other
 }

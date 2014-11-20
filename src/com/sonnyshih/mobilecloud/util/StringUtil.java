@@ -139,4 +139,16 @@ public class StringUtil {
 		return url;
 	}
 
+	public static String getWebDavURLEncodeStr(String url){
+		
+		try {
+			url = URLEncoder.encode(url,"UTF-8");
+			url = url.replace("+", "%20");	// replace + with %20 
+			url = url.replace("%2F", "/");	// replace %2F with	/ 
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+
+		return url;
+	}
 }

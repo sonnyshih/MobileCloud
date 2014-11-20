@@ -64,10 +64,33 @@ public class CloudFileListAdapter extends BaseAdapter {
 			viewHolder = (ViewHolder) convertView.getTag();
 		}
 
-//		Resources resources = context.getResources();
-//		int id = resources.getIdentifier(chartletList[position], "drawable",
-//				context.getPackageName());
-//		viewHolder.imageView.setImageResource(id);
+		Resources resources = context.getResources();
+		String iconName;
+		
+		switch (webDavItemEntities.get(position).getType()) {
+		case Up:
+			iconName = "ic_up_folder";
+			break;
+
+		case Folder:
+			iconName = "ic_folder";
+			break;
+
+		case File:
+			iconName = "ic_file";
+			break;
+
+		default:
+			iconName = "";
+			break;
+		}
+		
+		
+		int id = resources.getIdentifier(iconName, "drawable",
+				context.getPackageName());
+		
+		
+		viewHolder.imageView.setImageResource(id);
 
 		viewHolder.fileNameTextView.setText(webDavItemEntities.get(position).getName());
 		

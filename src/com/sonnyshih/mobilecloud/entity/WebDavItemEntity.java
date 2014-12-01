@@ -7,7 +7,8 @@ public class WebDavItemEntity implements Serializable {
 	private static final long serialVersionUID = 281356543384650996L;
 
 	private String name;
-	private ItemType type;
+	private ItemType itemType;
+	private FileType fileType;
 	private String createDate;
 	private String modifyDate;
 	private String size;
@@ -22,12 +23,20 @@ public class WebDavItemEntity implements Serializable {
 		this.name = name;
 	}
 
-	public ItemType getType() {
-		return type;
+	public ItemType getItemType() {
+		return itemType;
 	}
 
-	public void setType(ItemType type) {
-		this.type = type;
+	public void setItemType(ItemType itemType) {
+		this.itemType = itemType;
+	}
+
+	public FileType getFileType() {
+		return fileType;
+	}
+
+	public void setFileType(FileType fileType) {
+		this.fileType = fileType;
 	}
 
 	public String getCreateDate() {

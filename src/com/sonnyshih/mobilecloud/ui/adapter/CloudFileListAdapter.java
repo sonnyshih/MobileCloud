@@ -67,7 +67,7 @@ public class CloudFileListAdapter extends BaseAdapter {
 		Resources resources = context.getResources();
 		String iconName;
 		
-		switch (webDavItemEntities.get(position).getType()) {
+		switch (webDavItemEntities.get(position).getItemType()) {
 		case Up:
 			iconName = "ic_up_folder";
 			break;
@@ -77,11 +77,29 @@ public class CloudFileListAdapter extends BaseAdapter {
 			break;
 
 		case File:
-			iconName = "ic_file";
+			
+			switch (webDavItemEntities.get(position).getFileType()) {
+			case Audio:
+				iconName = "ic_music_file";
+				break;
+
+			case Image:
+				iconName = "ic_picture_file";
+				break;
+
+			case Video:
+				iconName = "ic_movie_file";
+				break;
+
+			default:
+				iconName = "ic_file";
+				break;
+			}
+			
 			break;
 
 		default:
-			iconName = "";
+			iconName = "ic_file";
 			break;
 		}
 		

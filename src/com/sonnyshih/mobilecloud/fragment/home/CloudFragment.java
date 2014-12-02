@@ -1,6 +1,7 @@
 package com.sonnyshih.mobilecloud.fragment.home;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -11,6 +12,7 @@ import org.apache.jackrabbit.webdav.property.DavPropertyName;
 import org.apache.jackrabbit.webdav.property.DavPropertySet;
 
 import com.sonnyshih.mobilecloud.R;
+import com.sonnyshih.mobilecloud.activity.cloud.LocalFileListActivity;
 import com.sonnyshih.mobilecloud.activity.home.MainActivity;
 import com.sonnyshih.mobilecloud.base.BaseFragment;
 import com.sonnyshih.mobilecloud.entity.FileType;
@@ -22,6 +24,9 @@ import com.sonnyshih.mobilecloud.ui.adapter.CloudFileListAdapter;
 import com.sonnyshih.mobilecloud.util.FileUtil;
 import com.sonnyshih.mobilecloud.util.StringUtil;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.ActionMode;
@@ -35,9 +40,11 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		OnClickListener {
@@ -45,19 +52,26 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	private String parentPath = "";
 	private String currentPath = "";
 
-	private ActionMode actionMode;
+	// private ActionMode actionMode;
 
 	private WebDavManager webDavManager;
 	private ArrayList<WebDavItemEntity> webDavItemEntities = new ArrayList<WebDavItemEntity>();
 	private ListView fileListView;
 	private CloudFileListAdapter cloudFileListAdapter;
 	private ProgressBar progressBar;
-	private LinearLayout toolbarLayout;
-	private Button manageButton;
+	// private LinearLayout toolbarLayout;
+	// private Button manageButton;
+	private Menu menu;
 
+	private AlertDialog createFolderAlertDialog;
+	private EditText newFolderNameEditText;
+	private Button createOKButton;
+	private Button createCancelButton;
+	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		setHasOptionsMenu(true);
 	}
 
 	@Override
@@ -70,15 +84,15 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		progressBar = (ProgressBar) view.findViewById(R.id.cloud_progressBar);
 		progressBar.setVisibility(View.VISIBLE);
 
-		toolbarLayout = (LinearLayout) view
-				.findViewById(R.id.cloud_toolbarLayout);
-		toolbarLayout.setVisibility(View.GONE);
+		// toolbarLayout = (LinearLayout) view
+		// .findViewById(R.id.cloud_toolbarLayout);
+		// toolbarLayout.setVisibility(View.GONE);
 
 		fileListView = (ListView) view.findViewById(R.id.cloud_listView);
 		fileListView.setVisibility(View.GONE);
 
-		manageButton = (Button) view.findViewById(R.id.cloud_manageButton);
-		manageButton.setOnClickListener(this);
+		// manageButton = (Button) view.findViewById(R.id.cloud_manageButton);
+		// manageButton.setOnClickListener(this);
 
 		cloudFileListAdapter = new CloudFileListAdapter(getActivity(),
 				webDavItemEntities);
@@ -91,7 +105,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	@Override
 	public void onResume() {
 		super.onResume();
-
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
@@ -107,6 +120,43 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 			}
 		}).start();
 
+	}
+
+	@Override
+	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+		super.onCreateOptionsMenu(menu, inflater);
+		inflater.inflate(R.menu.cloud_upload_menu, menu);
+		this.menu = menu;
+
+		if (StringUtil.isEmpty(currentPath)) {
+			showMenu(false);
+		} else {
+			showMenu(true);
+		}
+
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch (item.getItemId()) {
+		case R.id.cloudMenu_createFolder:
+			showCreateFolderAlertDialog();
+
+			return true;
+
+		case R.id.cloudMenu_upload:
+			Intent intent = new Intent();
+			intent.setClass(getActivity().getApplicationContext(),
+					LocalFileListActivity.class);
+			startActivity(intent);
+
+			return true;
+
+		default:
+			break;
+		}
+
+		return false;
 	}
 
 	private void initWebDav() {
@@ -126,10 +176,14 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 	private void showFileList(final String path) {
 
-		progressBar.setVisibility(View.VISIBLE);
-		fileListView.setVisibility(View.GONE);
-		toolbarLayout.setVisibility(View.GONE);
-
+		getActivity().runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				progressBar.setVisibility(View.VISIBLE);
+				fileListView.setVisibility(View.GONE);
+			}
+		});
+		
 		new Thread(new Runnable() {
 
 			@Override
@@ -190,9 +244,13 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 						cloudFileListAdapter.notifyDataSetChanged();
 						progressBar.setVisibility(View.GONE);
 						fileListView.setVisibility(View.VISIBLE);
-						if (!StringUtil.isEmpty(currentPath)) {
-							toolbarLayout.setVisibility(View.VISIBLE);
+
+						if (StringUtil.isEmpty(currentPath)) {
+							showMenu(false);
+						} else {
+							showMenu(true);
 						}
+
 					}
 				});
 
@@ -218,7 +276,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		int status = multiStatusResponse.getStatus()[0].getStatusCode();
 		DavPropertySet davPropertySet = multiStatusResponse
 				.getProperties(status);
-		// Log.d("Mylog","###################################");
 
 		// Get content Type
 		DavProperty<?> davProperty = davPropertySet
@@ -229,7 +286,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		} else {
 			contentType = "None";
 		}
-		// Log.d("Mylog","content Type = " + contentType);
 
 		// Get type
 		if (contentType.equals("httpd/unix-directory")) {
@@ -238,37 +294,30 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 			webDavItemEntity.setItemType(ItemType.File);
 		}// End if
 
-		// Log.d("Mylog","Type = " + type);
-
 		// Get Create Date
 		davProperty = davPropertySet.get(DavPropertyName.PROPERTY_CREATIONDATE);
 		String createDate = davProperty.getValue().toString();
 		webDavItemEntity.setCreateDate(createDate);
-		// Log.d("Mylog", "Create Date = " + createDate);
 
 		// Get Last Modify Date
 		davProperty = davPropertySet.get(DavPropertyName.GETLASTMODIFIED);
 		String modifyDate = davProperty.getValue().toString();
 		webDavItemEntity.setModifyDate(modifyDate);
-		// Log.d("Mylog","Last Modify Date = " + modifyDate);
 
 		// Get File Size
 		davProperty = davPropertySet.get(DavPropertyName.GETCONTENTLENGTH);
 		String size = davProperty.getValue().toString();
 		webDavItemEntity.setSize(size);
-		// Log.d("Mylog", "File Size = " + size);
 
 		// Get file url
 		String fileUrl = multiStatusResponse.getHref();
 		String fileUrlTemp = fileUrl;
-		// Log.d("Mylog", "file Url = " + fileUrl);
 
 		try {
 			fileUrlTemp = java.net.URLDecoder.decode(fileUrlTemp, "UTF-8");
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 		}// End try
-			// Log.d("Mylog", "file Url temp = " + fileUrlTemp);
 
 		String name = "";
 		davProperty = davPropertySet.get(DavPropertyName.DISPLAYNAME);
@@ -282,7 +331,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		}// End if
 
 		webDavItemEntity.setName(name);
-		// Log.d("Mylog", "File Name = " + name);
 
 		if (webDavItemEntity.getItemType() == ItemType.File) {
 
@@ -302,62 +350,161 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 		// Get Play URL
 		String playUrl; // URL with the Username and Password for Player
-		String Username = ApplicationManager.getInstance().getWebDavUsername();
-		String Password = ApplicationManager.getInstance().getWebDavPassword();
-		String HostName = ApplicationManager.getInstance().getDriveIp();
-		String HostPort = ApplicationManager.getInstance().getDrivePort();
+		String username = ApplicationManager.getInstance().getWebDavUsername();
+		String password = ApplicationManager.getInstance().getWebDavPassword();
+		String hostName = ApplicationManager.getInstance().getDriveIp();
+		String hostPort = ApplicationManager.getInstance().getDrivePort();
 		// Video_URL_Tmp =
 		// "http://admin:admin@192.168.1.1:8081/SD/Aximcom-sonny.mp4";
-		playUrl = "http://" + Username + ":" + Password + "@" + HostName + ":"
-				+ HostPort + "/" + currentPath + "/" + name;
+		playUrl = "http://" + username + ":" + password + "@" + hostName + ":"
+				+ hostPort + "/" + currentPath + "/" + name;
 		webDavItemEntity.setPlayUrl(playUrl);
 		// Log.d("Mylog", "play url = " + playUrl);
 
 		return webDavItemEntity;
 	}
 
-	private ActionMode.Callback actionModeCallback = new ActionMode.Callback() {
+	private void showMenu(final boolean flag) {
+		getActivity().runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
 
-		@Override
-		public boolean onCreateActionMode(ActionMode actionMode, Menu menu) {
-			MenuInflater inflater = actionMode.getMenuInflater();
-			inflater.inflate(R.menu.cloud_menu, menu);
-			return true;
+				for (int i = 0; i < menu.size(); i++) {
+					menu.getItem(i).setVisible(flag);
+				}
+
+			}
+		});
+	}
+
+	private void showCreateFolderAlertDialog() {
+		LayoutInflater layoutInflater = LayoutInflater.from(getActivity());
+		View view = layoutInflater.inflate(
+				R.layout.cloud_create_folder_form, null);
+
+		AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+		builder.setTitle("Create Folder");
+		builder.setIcon(android.R.drawable.ic_menu_info_details);
+		builder.setView(view);
+
+		newFolderNameEditText = (EditText) view.findViewById(R.id.cloud_newFolderNameEditText);
+		
+		createOKButton = (Button) view.findViewById(R.id.cloud_newFolderNameOKButton);
+		createOKButton.setOnClickListener(this);
+		
+		createCancelButton = (Button) view.findViewById(R.id.cloud_newFolderNameCancelButton);
+		createCancelButton.setOnClickListener(this);
+		createFolderAlertDialog = builder.create();
+		createFolderAlertDialog.show();
+	}
+
+	// public ActionMode.Callback actionModeCallback = new ActionMode.Callback()
+	// {
+	//
+	// @Override
+	// public boolean onCreateActionMode(ActionMode actionMode, Menu menu) {
+	// MenuInflater inflater = actionMode.getMenuInflater();
+	// inflater.inflate(R.menu.cloud_upload_menu, menu);
+	// return true;
+	// }
+	//
+	// @Override
+	// public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+	// return false; // Return false if nothing is done
+	// }
+	//
+	// @Override
+	// public boolean onActionItemClicked(ActionMode actionMode, MenuItem item)
+	// {
+	// switch (item.getItemId()) {
+	// case R.id.cloudMenu_createFolder:
+	// Log.d("Mylog", "create folder");
+	// // shareCurrentItem();
+	// // actionMode.finish(); // Action picked, so close the CAB
+	// return true;
+	//
+	// case R.id.cloudMenu_upload:
+	// Log.d("Mylog", "upload");
+	// // shareCurrentItem();
+	// // actionMode.finish(); // Action picked, so close the CAB
+	// return true;
+	//
+	// default:
+	// return false;
+	// }
+	// }
+	//
+	// // Called when the user exits the action mode
+	// @Override
+	// public void onDestroyActionMode(ActionMode mode) {
+	// actionMode = null;
+	// manageButton.setVisibility(View.VISIBLE);
+	// }
+	// };
+
+	private void onCreateFolderClick(){
+		final String folderName = newFolderNameEditText.getText().toString();
+		
+		// check the folder name is empty or not.
+		if (StringUtil.isEmpty(folderName)) {
+			Toast.makeText(getActivity().getApplicationContext(),
+					"Please input the new folder name", Toast.LENGTH_LONG).show();
+			return;
 		}
-
-		@Override
-		public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-			return false; // Return false if nothing is done
-		}
-
-		@Override
-		public boolean onActionItemClicked(ActionMode actionMode, MenuItem item) {
-			switch (item.getItemId()) {
-			case R.id.cloudMenu_createFolder:
-				Log.d("Mylog", "create folder");
-				// shareCurrentItem();
-				// actionMode.finish(); // Action picked, so close the CAB
-				return true;
-
-			case R.id.cloudMenu_upload:
-				Log.d("Mylog", "upload");
-				// shareCurrentItem();
-				// actionMode.finish(); // Action picked, so close the CAB
-				return true;
-
-			default:
-				return false;
+		
+		// Check the folder name exist or not.
+		boolean isDuplicate = false;
+		for (WebDavItemEntity webDavItemEntity : webDavItemEntities) {
+			if (webDavItemEntity.getItemType() == ItemType.Folder) {
+				if (folderName.equals(webDavItemEntity.getName())) {
+					isDuplicate = true;
+				}
 			}
 		}
-
-		// Called when the user exits the action mode
-		@Override
-		public void onDestroyActionMode(ActionMode mode) {
-			actionMode = null;
-			manageButton.setVisibility(View.VISIBLE);
+		
+		if (isDuplicate) {
+			Toast.makeText(getActivity().getApplicationContext(),
+					"The folder name has existed.", Toast.LENGTH_LONG).show();
+			return;
 		}
-	};
+		
+		new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				String path = "";
+				String hostName = ApplicationManager.getInstance().getDriveIp();
+				String hostPort = ApplicationManager.getInstance().getDrivePort();
 
+				String folderNameTmp = folderName;
+				
+				try {
+					folderNameTmp = URLEncoder.encode(folderNameTmp,"UTF-8");
+					folderNameTmp = folderNameTmp.replace("+", "%20");	// replace %20 with +
+					
+					if (StringUtil.isEmpty(currentPath) ) {
+						path = "http://" + hostName + ":" + hostPort + "/"
+								+ folderNameTmp;
+					} else {
+						path = "http://" + hostName + ":" + hostPort + "/"
+								+ currentPath + "/" + folderNameTmp;
+					}
+					
+					WebDavManager.getInstance().createNewFolder(path);
+					showFileList(currentPath);
+
+				} catch (UnsupportedEncodingException e) {
+					e.printStackTrace();
+				}
+				
+			}
+		}).start();
+		
+		newFolderNameEditText.setText("");
+		createFolderAlertDialog.dismiss();
+		
+	}
+	
 	@Override
 	public void onItemClick(AdapterView<?> parent, View view, int position,
 			long id) {
@@ -400,11 +547,14 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	@Override
 	public void onClick(View view) {
 		switch (view.getId()) {
-		case R.id.cloud_manageButton:
+		case R.id.cloud_newFolderNameOKButton:
+			onCreateFolderClick();
+			
+			break;
 
-			// Start the CAB using the ActionMode.Callback defined above
-			actionMode = getActivity().startActionMode(actionModeCallback);
-			manageButton.setVisibility(View.GONE);
+		case R.id.cloud_newFolderNameCancelButton:
+			newFolderNameEditText.setText("");
+			createFolderAlertDialog.dismiss();
 			break;
 
 		default:

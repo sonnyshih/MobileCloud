@@ -6,7 +6,6 @@ import com.sonnyshih.mobilecloud.R;
 import com.sonnyshih.mobilecloud.entity.WebDavItemEntity;
 
 import android.content.Context;
-import android.content.res.Resources;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -64,52 +63,46 @@ public class CloudFileListAdapter extends BaseAdapter {
 			viewHolder = (ViewHolder) convertView.getTag();
 		}
 
-		Resources resources = context.getResources();
-		String iconName;
+		int id;
 		
 		switch (webDavItemEntities.get(position).getItemType()) {
 		case Up:
-			iconName = "ic_up_folder";
+			id = R.drawable.ic_up_folder;
 			break;
 
 		case Folder:
-			iconName = "ic_folder";
+			id = R.drawable.ic_folder;
 			break;
 
 		case File:
 			
 			switch (webDavItemEntities.get(position).getFileType()) {
 			case Audio:
-				iconName = "ic_music_file";
+				id = R.drawable.ic_audio_file;
 				break;
 
 			case Image:
-				iconName = "ic_picture_file";
+				id = R.drawable.ic_photo_file;
 				break;
 
 			case Video:
-				iconName = "ic_movie_file";
+				id = R.drawable.ic_video_file;
 				break;
 
 			default:
-				iconName = "ic_file";
+				id = R.drawable.ic_file;
 				break;
 			}
 			
 			break;
 
 		default:
-			iconName = "ic_file";
+			id = R.drawable.ic_file;
 			break;
 		}
 		
 		
-		int id = resources.getIdentifier(iconName, "drawable",
-				context.getPackageName());
-		
-		
 		viewHolder.imageView.setImageResource(id);
-
 		viewHolder.fileNameTextView.setText(webDavItemEntities.get(position).getName());
 		
 		return convertView;

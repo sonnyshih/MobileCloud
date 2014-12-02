@@ -232,7 +232,6 @@ public class MainActivity extends BaseFragmentActivity implements
 	
 	@Override
 	public void doRouterExcute(String mobileCloudName, String routerIp, String routerPort, String routerMac) {
-		Log.d("Mylog", "mobileCloudName: "+mobileCloudName+" routerIp: "+routerIp);
 	
 		if (!StringUtil.isEmpty(routerIp)) {
 			ApplicationManager.getInstance().setRouterMobileCloudName(mobileCloudName);
@@ -244,7 +243,6 @@ public class MainActivity extends BaseFragmentActivity implements
 
 	@Override
 	public void doDriveExcute(String mobileCloudName, String driveIp, String drivePort, String driveMac) {
-		Log.d("Mylog", "mobileCloudName: "+mobileCloudName+" driveIp: "+driveIp);
 
 		if (!StringUtil.isEmpty(driveIp)) {
 			ApplicationManager.getInstance().setDriveMobileCloudName(mobileCloudName);

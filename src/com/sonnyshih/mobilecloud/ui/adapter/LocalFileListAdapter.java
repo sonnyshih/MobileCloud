@@ -90,10 +90,12 @@ public class LocalFileListAdapter extends BaseAdapter{
 		viewHolder.imageView.setImageResource(id);
 		
 		Resources resources = context.getResources();
+		
 		// default color
-		viewHolder.itemLayout.setBackgroundColor(resources
-				.getColor(android.R.color.background_light));
-
+		viewHolder.itemLayout.setBackgroundResource(R.drawable.cloud_adapter_style); 
+//		viewHolder.itemLayout.setBackgroundColor(resources
+//				.getColor(android.R.color.background_light));
+//
 		// If item is checked, set the color.
 		if (fileArrayList.get(position).isChecked()) {
 			viewHolder.itemLayout.setBackgroundColor(resources

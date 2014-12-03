@@ -41,9 +41,12 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class CloudFragment extends BaseFragment implements OnItemClickListener,
@@ -51,16 +54,16 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 	private String parentPath = "";
 	private String currentPath = "";
-
-	// private ActionMode actionMode;
-
+	private String currentFolderName = "";
+	
 	private WebDavManager webDavManager;
 	private ArrayList<WebDavItemEntity> webDavItemEntities = new ArrayList<WebDavItemEntity>();
 	private ListView fileListView;
 	private CloudFileListAdapter cloudFileListAdapter;
 	private ProgressBar progressBar;
-	// private LinearLayout toolbarLayout;
-	// private Button manageButton;
+	private LinearLayout backArrowLayout;
+	private TextView currentFolderNameTextView;
+	private ImageButton backButton;
 	private Menu menu;
 
 	private AlertDialog createFolderAlertDialog;
@@ -81,18 +84,17 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		View view = inflater
 				.inflate(R.layout.cloud_fragement, container, false);
 
+		backArrowLayout = (LinearLayout) view.findViewById(R.id.cloud_backArrowLayout);
+		
+		currentFolderNameTextView = (TextView) view.findViewById(R.id.cloud_currentFolderNameTextView);
+		backButton = (ImageButton) view.findViewById(R.id.cloud_backButton);
+		backButton.setOnClickListener(this);
+		
 		progressBar = (ProgressBar) view.findViewById(R.id.cloud_progressBar);
 		progressBar.setVisibility(View.VISIBLE);
 
-		// toolbarLayout = (LinearLayout) view
-		// .findViewById(R.id.cloud_toolbarLayout);
-		// toolbarLayout.setVisibility(View.GONE);
-
 		fileListView = (ListView) view.findViewById(R.id.cloud_listView);
 		fileListView.setVisibility(View.GONE);
-
-		// manageButton = (Button) view.findViewById(R.id.cloud_manageButton);
-		// manageButton.setOnClickListener(this);
 
 		cloudFileListAdapter = new CloudFileListAdapter(getActivity(),
 				webDavItemEntities);
@@ -125,7 +127,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	@Override
 	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
 		super.onCreateOptionsMenu(menu, inflater);
-		inflater.inflate(R.menu.cloud_upload_menu, menu);
+		inflater.inflate(R.menu.cloud_manage_menu, menu);
 		this.menu = menu;
 
 		if (StringUtil.isEmpty(currentPath)) {
@@ -174,6 +176,14 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 	}
 
+	private String getFolderName(String path){
+		String folderName = "";
+		
+		int index = path.lastIndexOf("/");
+		folderName = path.substring(index + 1, path.length());
+		return folderName;
+	}
+	
 	private void showFileList(final String path) {
 
 		getActivity().runOnUiThread(new Runnable() {
@@ -181,6 +191,18 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 			public void run() {
 				progressBar.setVisibility(View.VISIBLE);
 				fileListView.setVisibility(View.GONE);
+				
+				String folderName = "";
+				
+				// add the up arrow icon at the first position.
+				if (StringUtil.isEmpty(path)) {
+					backArrowLayout.setVisibility(View.GONE);
+				} else {
+					folderName = getFolderName(path);
+					backArrowLayout.setVisibility(View.VISIBLE);
+				}
+				
+				currentFolderNameTextView.setText(folderName);
 			}
 		});
 		
@@ -222,16 +244,8 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 				}
 
-				// add the up arrow icon at the first position.
-				if (!StringUtil.isEmpty(currentPath)) {
-					WebDavItemEntity webDavItemEntity = new WebDavItemEntity();
-					webDavItemEntity.setItemType(ItemType.Up);
-					webDavItemEntity.setName("Up...");
-					webDavItemEntities.add(webDavItemEntity);
-				}
 
-				Collections.sort(folders, new SortByName()); // Sort by Folder
-																// Name
+				Collections.sort(folders, new SortByName()); // Sort by Folder Name
 				Collections.sort(files, new SortByName()); // Sort by File Name
 
 				// Merge the folder list and file list.
@@ -515,6 +529,8 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		switch (type) {
 
 		case Folder:
+			currentFolderName = itemName;
+
 			parentPath = currentPath;
 			currentPath += "/" + itemName;
 			showFileList(currentPath);
@@ -522,17 +538,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 		case File:
 
-			break;
-
-		case Up:
-			showFileList(parentPath);
-			currentPath = parentPath;
-
-			// File's parent path
-			if (!currentPath.equals("")) {
-				int index = currentPath.lastIndexOf("/");
-				parentPath = currentPath.substring(0, index);
-			}
+			
 			break;
 
 		default:
@@ -557,6 +563,19 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 			createFolderAlertDialog.dismiss();
 			break;
 
+		case R.id.cloud_backButton:
+			
+			showFileList(parentPath);
+			currentPath = parentPath;
+
+			// File's parent path
+			if (!currentPath.equals("")) {
+				int index = currentPath.lastIndexOf("/");
+				parentPath = currentPath.substring(0, index);
+			}
+
+			break;
+			
 		default:
 			break;
 		}

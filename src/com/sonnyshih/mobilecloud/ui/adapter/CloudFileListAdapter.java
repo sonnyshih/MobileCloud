@@ -66,10 +66,6 @@ public class CloudFileListAdapter extends BaseAdapter {
 		int id;
 		
 		switch (webDavItemEntities.get(position).getItemType()) {
-		case Up:
-			id = R.drawable.ic_up_folder;
-			break;
-
 		case Folder:
 			id = R.drawable.ic_folder;
 			break;

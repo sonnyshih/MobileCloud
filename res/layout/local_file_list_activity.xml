@@ -16,8 +16,8 @@
 
         <ImageView
             android:id="@+id/localFileList_backImageView"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:src="@drawable/ic_up_folder" />
 
         <TextView
@@ -33,30 +33,33 @@
     <ListView
         android:id="@+id/localFileList_listView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="fill_parent"
+        android:layout_marginTop="10dp"
         android:layout_weight="1" >
     </ListView>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
         android:layout_marginTop="10dp"
+        android:gravity="center_vertical"
         android:orientation="horizontal" >
-<!-- 
+
+        <!--
         <Button
             android:id="@+id/localFileList_uploadButton"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Upload" />
- -->
+        -->
+
         <Button
             android:id="@+id/localFileList_cancelButton"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Cancel" />
+            android:text="Close" />
     </LinearLayout>
 
 </LinearLayout>

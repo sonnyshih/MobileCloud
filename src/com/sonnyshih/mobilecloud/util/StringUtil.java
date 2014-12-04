@@ -28,6 +28,18 @@ public class StringUtil {
 		return "";
 	}
 
+	public static String pathEncodeURL(String value)
+			throws UnsupportedEncodingException {
+		if (!isEmpty(value)) {
+			value = URLEncoder.encode(value,"UTF-8");
+			value = value.replace("+", "%20");	// replace %20 with +
+			value = value.replace("%2F", "/");	// replace / with %2F
+			return value;
+		}
+		return "";
+
+	}
+	
 	public static String encodeBase64(String value) {
 		if (!isEmpty(value)) {
 			return Base64.encodeToString(value.getBytes(), Base64.DEFAULT);

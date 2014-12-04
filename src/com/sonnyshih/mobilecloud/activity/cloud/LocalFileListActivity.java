@@ -1,6 +1,7 @@
 package com.sonnyshih.mobilecloud.activity.cloud;
 
 import java.io.File;
+import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -8,9 +9,14 @@ import java.util.Comparator;
 import com.sonnyshih.mobilecloud.R;
 import com.sonnyshih.mobilecloud.base.BaseFragmentActivity;
 import com.sonnyshih.mobilecloud.entity.ActionModeFileEntity;
+import com.sonnyshih.mobilecloud.entity.WebDavItemEntity;
+import com.sonnyshih.mobilecloud.fragment.home.CloudFragment;
+import com.sonnyshih.mobilecloud.manage.WebDavManager;
+import com.sonnyshih.mobilecloud.manage.WebDavManager.UploadHandler;
 import com.sonnyshih.mobilecloud.ui.adapter.LocalFileListAdapter;
 import com.sonnyshih.mobilecloud.util.FileUtil;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.ActionMode;
@@ -29,7 +35,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 public class LocalFileListActivity extends BaseFragmentActivity implements
-		OnClickListener, OnItemClickListener, MultiChoiceModeListener {
+		OnClickListener, OnItemClickListener, MultiChoiceModeListener, UploadHandler {
 	
 	private Button cancelButton;
 	private ListView listView;
@@ -42,6 +48,31 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 	private TextView currentFolderNameTextView;
 	private ActionMode actionMode;
 	
+	private String currentPath;
+	private ArrayList<WebDavItemEntity> webDavItemEntities;
+//	private String hostName;
+//	private String hostPort;
+	private Thread uploadFileThread;
+	
+	@Override
+	protected void onStart() {
+		super.onStart();
+//		hostName = ApplicationManager.getInstance().getDriveIp();
+//		hostPort = ApplicationManager.getInstance().getDrivePort();
+		
+		Intent intent = this.getIntent();
+		Bundle bundle = intent.getExtras();
+		currentPath = bundle.getString(CloudFragment.BUNDLE_STRING_CURRENT_PATH);
+		webDavItemEntities = (ArrayList<WebDavItemEntity>) bundle
+				.getSerializable(CloudFragment.BUNDLE_ARRAYLIST_WEBDAV_ITEM_ENTITIES);
+		
+		Log.d("Mylog", "currentPath="+currentPath);
+		for (WebDavItemEntity webDavItemEntity : webDavItemEntities) {
+			Log.d("Mylog", "webDavItemEntity="+webDavItemEntity.getName());
+		}
+		
+	}
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -128,24 +159,63 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 
 	}
 
-//	private byte[] getFileBytes(File file) throws IOException {
-//		BufferedInputStream bis = null;
-//		try {
-//			bis = new BufferedInputStream(new FileInputStream(file));
-//			int bytes = (int) file.length();
-//			byte[] buffer = new byte[bytes];
-//			int readBytes = bis.read(buffer);
-//			if (readBytes != buffer.length) {
-//				throw new IOException("Entire file not read");
-//			}
-//			return buffer;
-//		} finally {
-//			if (bis != null) {
-//				bis.close();
-//			}
-//		}
-//	}
 	
+	private void uploadFile(final ArrayList<ActionModeFileEntity> fileArrayList){
+		
+		
+		uploadFileThread = new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				
+				for (ActionModeFileEntity actionModeFileEntity : fileArrayList) {
+					String fileName = actionModeFileEntity.getFile().getName();
+					String uploadPath = currentPath;
+					String fileLocalPath = actionModeFileEntity.getFile().getPath();
+					
+					Log.d("Mylog", "file Name: " + fileName + " uploadPath: "
+							+ uploadPath + " fileLocalPath: " + fileLocalPath);
+					
+					boolean isExsitOnWebDav = isExsitOnWebDav(fileName);
+					
+					WebDavManager.getInstance().uploadFile(
+							LocalFileListActivity.this, isExsitOnWebDav, fileName,
+							uploadPath, fileLocalPath);
+
+				}
+
+				Log.d("Mylog", " ########### Completed");
+				
+				if (actionMode != null) {
+					runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							localFileListAdapter.cleanAllSelected();
+							actionMode.finish();
+							finish();
+						}
+					});
+				}
+
+			}
+		});		
+		
+		uploadFileThread.start();
+	}
+
+	private boolean isExsitOnWebDav(String fileName){
+		boolean flag = false;
+		
+		for (WebDavItemEntity webDavItemEntity : webDavItemEntities) {
+			if (fileName.equals(webDavItemEntity.getName())) {
+				flag = true;
+			}
+		}
+		
+		return flag;
+		
+	}
+
 	
 	@Override
 	public void onBackPressed() {
@@ -156,19 +226,32 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 	@Override
 	public void onItemClick(AdapterView<?> parent, View view, int position,
 			long id) {
-		File file = fileArrayList.get(position).getFile();
+		
+		final File file = fileArrayList.get(position).getFile();
+		
 		if (file.isDirectory()) {
 			getForderAndFileList(file);
 		} else {
-//			if (FileTypeUtil.isImage(file.getName())) {
-//				if (!xmppTcpConnection.isConnected()) {
-//					showErrorAlertDialog(getString(R.string.change_photo_can_not_connect_to_server));
-//					return;
+			
+//			new Thread(new Runnable() {
+//				
+//				@Override
+//				public void run() {
+//					
+//					String fileName = file.getName();
+//					String uploadPath = currentPath;
+//					String fileLocalPath = file.getPath();
+//					
+//					Log.d("Mylog", "file Name: " + fileName + " uploadPath: "
+//							+ uploadPath + " fileLocalPath: " + fileLocalPath);
+//					
+//					WebDavManager.getInstance().uploadFile(
+//							LocalFileListActivity.this, false, fileName,
+//							uploadPath, fileLocalPath);
+//					
 //				}
-//
-//				updatePhoto(file);
-//				finish();
-//			}
+//			}).start();
+			
 		}
 	}
 	
@@ -208,20 +291,38 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 
 	@Override
 	public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-		Log.d("Mylog", "asdfas");
-//        switch (item.getItemId()) {
-//		case R.id.contextMenu_cart:
+        switch (item.getItemId()) {
+		case R.id.cloudMenu_upload:
+			
+			ArrayList<ActionModeFileEntity> uploadFileArrayList = new ArrayList<ActionModeFileEntity>();
+			
+			ArrayList<ActionModeFileEntity> fileArrayList = localFileListAdapter
+					.getActionModeFileEntities();
+			
+			
+			
+			for (ActionModeFileEntity actionModeFileEntity : fileArrayList) {
+//				Log.d("Mylog", "actionModeFileEntity="
+//						+ actionModeFileEntity.getFile().getName() + " is "
+//						+ actionModeFileEntity.isChecked());
+				
+				if (actionModeFileEntity.isChecked()){
+					uploadFileArrayList.add(actionModeFileEntity);
+				}
+			}
+			
+			uploadFile(uploadFileArrayList);
+			
 //			onCartClick();
 //			itemCounter = 0;
 //			actionModeListAdapter.cleanAllSelected();
 //			actionMode.finish(); // Action picked, so close the CAB
-//			return true;
-//			
-//		default:
-//			return false;
-//		}
+			return true;
+			
+		default:
+			return false;
+		}
 
-		return false;
 	}
 
 	@Override
@@ -242,6 +343,21 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 			}
 		}
 
+	}
+
+	@Override
+	public void getProgress(int progress) {
+		Log.d("Mylog", "progress = " +progress);
+	}
+
+	@Override
+	public void getMessage(int statusCode, String statusText) {
+
+		Log.d("Mylog", "statusCode=" + statusCode + " statusText=" + statusText);
+
+		
+		// HttpURLConnection.HTTP_CREATED, 
+		
 	}
 	
 }

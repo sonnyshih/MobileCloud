@@ -52,6 +52,9 @@ import android.widget.Toast;
 public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		OnClickListener {
 
+	public static String BUNDLE_STRING_CURRENT_PATH = "BUNDLE_STRING_CURRENT_PATH";
+	public static String BUNDLE_ARRAYLIST_WEBDAV_ITEM_ENTITIES = "BUNDLE_ARRAYLIST_WEBDAV_ITEM_ENTITIES";
+	
 	private String parentPath = "";
 	private String currentPath = "";
 	private String currentFolderName = "";
@@ -150,6 +153,12 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 			Intent intent = new Intent();
 			intent.setClass(getActivity().getApplicationContext(),
 					LocalFileListActivity.class);
+			
+			Bundle bundle = new Bundle();
+			bundle.putString(BUNDLE_STRING_CURRENT_PATH, currentPath);
+			bundle.putSerializable(BUNDLE_ARRAYLIST_WEBDAV_ITEM_ENTITIES, webDavItemEntities);  
+			intent.putExtras(bundle);
+			
 			startActivity(intent);
 
 			return true;
@@ -491,17 +500,20 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 				String hostPort = ApplicationManager.getInstance().getDrivePort();
 
 				String folderNameTmp = folderName;
+				String currentPathTmp = currentPath;
 				
 				try {
 					folderNameTmp = URLEncoder.encode(folderNameTmp,"UTF-8");
 					folderNameTmp = folderNameTmp.replace("+", "%20");	// replace %20 with +
 					
+					currentPathTmp = StringUtil.pathEncodeURL(currentPathTmp);
+					
 					if (StringUtil.isEmpty(currentPath) ) {
 						path = "http://" + hostName + ":" + hostPort + "/"
 								+ folderNameTmp;
 					} else {
-						path = "http://" + hostName + ":" + hostPort + "/"
-								+ currentPath + "/" + folderNameTmp;
+						path = "http://" + hostName + ":" + hostPort
+								+ currentPathTmp + "/" + folderNameTmp;
 					}
 					
 					WebDavManager.getInstance().createNewFolder(path);

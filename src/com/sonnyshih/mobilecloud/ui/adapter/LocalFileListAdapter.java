@@ -108,6 +108,10 @@ public class LocalFileListAdapter extends BaseAdapter{
 		return convertView;
 	}
 
+	public ArrayList<ActionModeFileEntity> getActionModeFileEntities(){
+		return fileArrayList;
+	}
+	
 	public void selected(int position){
 		fileArrayList.get(position).setChecked(true);
 		notifyDataSetChanged();

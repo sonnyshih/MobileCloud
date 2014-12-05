@@ -59,12 +59,12 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 //	private String hostPort;
 	private Thread uploadFileThread;
 	private AlertDialog uploadProgressAlertDialog;
-	private TextView currentFileNameTextView;
-	private ProgressBar progressBar;
 	
 	private int currentNumber = 0;
+	private TextView currentFileNameTextView;
 	private TextView currentNumberTextView;
 	private TextView totalTextView;
+	private ProgressBar progressBar;
 	
 	@Override
 	protected void onStart() {
@@ -77,11 +77,6 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 		currentPath = bundle.getString(CloudFragment.BUNDLE_STRING_CURRENT_PATH);
 		webDavItemEntities = (ArrayList<WebDavItemEntity>) bundle
 				.getSerializable(CloudFragment.BUNDLE_ARRAYLIST_WEBDAV_ITEM_ENTITIES);
-		
-		Log.d("Mylog", "currentPath="+currentPath);
-		for (WebDavItemEntity webDavItemEntity : webDavItemEntities) {
-			Log.d("Mylog", "webDavItemEntity="+webDavItemEntity.getName());
-		}
 		
 	}
 
@@ -215,7 +210,6 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 
 				}
 
-				Log.d("Mylog", " ########### Completed");
 				
 				if (actionMode != null) {
 					runOnUiThread(new Runnable() {
@@ -250,17 +244,17 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 	
 	private void ShowUploadFileProgressDialog(){
 		LayoutInflater layoutInflater = LayoutInflater.from(this);
-		View uploadFileView = layoutInflater.inflate(R.layout.upload_file_progress_dialog, null);
+		View uploadFileView = layoutInflater.inflate(R.layout.handle_file_progress_dialog, null);
 		
 		
 		currentFileNameTextView = (TextView) uploadFileView
-				.findViewById(R.id.localFileList_uploadFileDialog_currentFileNameTextView);
+				.findViewById(R.id.handleFileProgressDialog_currentFileNameTextView);
 		progressBar = (ProgressBar) uploadFileView
-				.findViewById(R.id.localFileList_uploadFileDialog_progressBar);
+				.findViewById(R.id.handleFileProgressDialog_progressBar);
 		currentNumberTextView = (TextView) uploadFileView
-				.findViewById(R.id.localFileList_uploadFileDialog_currentNumberTextView);
+				.findViewById(R.id.handleFileProgressDialog_currentNumberTextView);
 		totalTextView = (TextView) uploadFileView
-				.findViewById(R.id.localFileList_uploadFileDialog_totalTextView);
+				.findViewById(R.id.handleFileProgressDialog_totalTextView);
 		
 		AlertDialog.Builder uploadFileBuilder = new AlertDialog.Builder(this);
 		uploadFileBuilder.setTitle("Uploading...");
@@ -286,7 +280,6 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 		
 		isStopUpload = true;
 		WebDavManager.getInstance().stopUploadFile();
-		Log.d("Hello", "stop1111");
 		
 		localFileListAdapter.cleanAllSelected();
 		if (actionMode != null) {
@@ -398,18 +391,12 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 
 	@Override
 	public void getProgress(int progress) {
-		Log.d("Mylog", "progress = " +progress);
 		progressBar.setProgress(progress);
 	}
 
 	@Override
 	public void getMessage(int statusCode, String statusText) {
-
-		Log.d("Mylog", "statusCode=" + statusCode + " statusText=" + statusText);
-
-		
 		// HttpURLConnection.HTTP_CREATED, 
-		
 	}
 	
 }

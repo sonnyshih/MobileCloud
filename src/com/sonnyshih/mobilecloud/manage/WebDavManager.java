@@ -1,11 +1,8 @@
 package com.sonnyshih.mobilecloud.manage;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
-import java.net.URLEncoder;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -13,10 +10,10 @@ import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpConnectionManager;
 import org.apache.commons.httpclient.HttpException;
-import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
+import org.apache.commons.httpclient.methods.DeleteMethod;
 import org.apache.commons.httpclient.methods.FileRequestEntity;
 import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
 import org.apache.jackrabbit.webdav.DavConstants;
@@ -27,9 +24,7 @@ import org.apache.jackrabbit.webdav.client.methods.MkColMethod;
 import org.apache.jackrabbit.webdav.client.methods.PropFindMethod;
 import org.apache.jackrabbit.webdav.client.methods.PutMethod;
 
-import android.R.integer;
 import android.net.Uri;
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import com.sonnyshih.mobilecloud.upload.UploadProgressListener;
@@ -46,6 +41,7 @@ public class WebDavManager {
 	private String username;
 	private String password;
 	private boolean isUploading = false;
+//	private boolean isDeleting = false;
 	
 	
 	public WebDavManager(){
@@ -224,6 +220,21 @@ public class WebDavManager {
 	    String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExtension);
 	    return mimeType;
 	}
+	
+	public void deleteWebDavItem(String path){
+        DeleteMethod delete = new DeleteMethod(path);
+        
+        try {
+        	Client.executeMethod(delete);
+        	
+		} catch (HttpException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+	}
+	
 	
 	public interface UploadHandler {
 		public void getProgress(int progress);

@@ -15,6 +15,7 @@ import com.sonnyshih.mobilecloud.R;
 import com.sonnyshih.mobilecloud.activity.home.MainActivity;
 import com.sonnyshih.mobilecloud.activity.localfile.LocalFileListActivity;
 import com.sonnyshih.mobilecloud.base.BaseFragment;
+import com.sonnyshih.mobilecloud.entity.ActionModeFileEntity;
 import com.sonnyshih.mobilecloud.entity.FileType;
 import com.sonnyshih.mobilecloud.entity.ItemType;
 import com.sonnyshih.mobilecloud.entity.WebDavItemEntity;
@@ -25,9 +26,11 @@ import com.sonnyshih.mobilecloud.util.FileUtil;
 import com.sonnyshih.mobilecloud.util.StringUtil;
 
 import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.ActionMode;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -35,6 +38,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.AbsListView.MultiChoiceModeListener;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
@@ -48,7 +52,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class CloudFragment extends BaseFragment implements OnItemClickListener,
-		OnClickListener {
+		OnClickListener, MultiChoiceModeListener {
 
 	public static String BUNDLE_STRING_CURRENT_PATH = "BUNDLE_STRING_CURRENT_PATH";
 	public static String BUNDLE_ARRAYLIST_WEBDAV_ITEM_ENTITIES = "BUNDLE_ARRAYLIST_WEBDAV_ITEM_ENTITIES";
@@ -71,6 +75,19 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	private EditText newFolderNameEditText;
 	private Button createOKButton;
 	private Button createCancelButton;
+	
+
+	private ActionMode actionMode;
+	
+	private boolean isStopDelete = false;
+	private Thread uploadFileThread;
+	private AlertDialog deleteWebDavItemProgressAlertDialog;
+	private ProgressBar deleteProgressBar;
+	private int currentNumber = 0;
+	private TextView currentFileNameTextView;
+	private TextView currentNumberTextView;
+	private TextView totalTextView;
+
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -101,7 +118,10 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 				webDavItemEntities);
 		fileListView.setAdapter(cloudFileListAdapter);
 		fileListView.setOnItemClickListener(this);
+		fileListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
+		fileListView.setMultiChoiceModeListener(this);
 
+		
 		return view;
 	}
 
@@ -128,7 +148,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	@Override
 	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
 		super.onCreateOptionsMenu(menu, inflater);
-		inflater.inflate(R.menu.cloud_manage_menu, menu);
+		inflater.inflate(R.menu.cloud_menu, menu);
 		this.menu = menu;
 
 		if (StringUtil.isEmpty(currentPath)) {
@@ -332,8 +352,9 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 		// Get file url
 		String fileUrl = multiStatusResponse.getHref();
+		webDavItemEntity.setUrl(fileUrl);
+		
 		String fileUrlTemp = fileUrl;
-
 		try {
 			fileUrlTemp = java.net.URLDecoder.decode(fileUrlTemp, "UTF-8");
 		} catch (UnsupportedEncodingException e) {
@@ -389,7 +410,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		getActivity().runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
-
 				for (int i = 0; i < menu.size(); i++) {
 					menu.getItem(i).setVisible(flag);
 				}
@@ -418,50 +438,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		createFolderAlertDialog = builder.create();
 		createFolderAlertDialog.show();
 	}
-
-	// public ActionMode.Callback actionModeCallback = new ActionMode.Callback()
-	// {
-	//
-	// @Override
-	// public boolean onCreateActionMode(ActionMode actionMode, Menu menu) {
-	// MenuInflater inflater = actionMode.getMenuInflater();
-	// inflater.inflate(R.menu.cloud_upload_menu, menu);
-	// return true;
-	// }
-	//
-	// @Override
-	// public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-	// return false; // Return false if nothing is done
-	// }
-	//
-	// @Override
-	// public boolean onActionItemClicked(ActionMode actionMode, MenuItem item)
-	// {
-	// switch (item.getItemId()) {
-	// case R.id.cloudMenu_createFolder:
-	// Log.d("Mylog", "create folder");
-	// // shareCurrentItem();
-	// // actionMode.finish(); // Action picked, so close the CAB
-	// return true;
-	//
-	// case R.id.cloudMenu_upload:
-	// Log.d("Mylog", "upload");
-	// // shareCurrentItem();
-	// // actionMode.finish(); // Action picked, so close the CAB
-	// return true;
-	//
-	// default:
-	// return false;
-	// }
-	// }
-	//
-	// // Called when the user exits the action mode
-	// @Override
-	// public void onDestroyActionMode(ActionMode mode) {
-	// actionMode = null;
-	// manageButton.setVisibility(View.VISIBLE);
-	// }
-	// };
 
 	private void onCreateFolderClick(){
 		final String folderName = newFolderNameEditText.getText().toString();
@@ -529,6 +505,116 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		
 	}
 	
+	
+	private void deleteWebDaveItem(final ArrayList<WebDavItemEntity> deleteWebDavItemEntities){
+		showDeleteWebDaveItemProgressDialog();
+		currentNumber = 0;
+		totalTextView.setText(Integer.toString(deleteWebDavItemEntities.size()));
+		deleteProgressBar.setMax(deleteWebDavItemEntities.size());
+		isStopDelete = false;
+		
+		uploadFileThread = new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				
+				deleteProgressBar.setProgress(0);
+				
+				for (WebDavItemEntity webDavItemEntity : deleteWebDavItemEntities) {
+					
+					// Stop delete 
+					if (isStopDelete) {
+						return;
+					}
+					
+					final String fileName = webDavItemEntity.getName();
+					
+					getActivity().runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							currentNumber++;
+							currentNumberTextView.setText(Integer.toString(currentNumber));
+							currentFileNameTextView.setText(fileName);
+						}
+					});
+
+					deleteProgressBar.setProgress(currentNumber);
+					WebDavManager.getInstance().deleteWebDavItem(webDavItemEntity.getUrl());
+					try {
+						Thread.sleep(500);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+
+				}
+
+				
+				if (actionMode != null) {
+					getActivity().runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							cloudFileListAdapter.cleanAllSelected();
+							actionMode.finish();
+							dismissDeleteWebDavItemProgressDialog();
+						}
+					});
+				}
+
+			}
+		});		
+		
+		uploadFileThread.start();
+
+	}
+	
+	private void showDeleteWebDaveItemProgressDialog(){
+		LayoutInflater layoutInflater = LayoutInflater.from(getActivity());
+		View handleFileView = layoutInflater.inflate(R.layout.handle_file_progress_dialog, null);
+		
+		
+		currentFileNameTextView = (TextView) handleFileView
+				.findViewById(R.id.handleFileProgressDialog_currentFileNameTextView);
+		deleteProgressBar = (ProgressBar) handleFileView
+				.findViewById(R.id.handleFileProgressDialog_progressBar);
+		currentNumberTextView = (TextView) handleFileView
+				.findViewById(R.id.handleFileProgressDialog_currentNumberTextView);
+		totalTextView = (TextView) handleFileView
+				.findViewById(R.id.handleFileProgressDialog_totalTextView);
+		
+		AlertDialog.Builder deleteWebDavItemBuilder = new AlertDialog.Builder(getActivity());
+		deleteWebDavItemBuilder.setTitle("Deleting...");
+		deleteWebDavItemBuilder.setIcon(android.R.drawable.ic_menu_info_details);
+		deleteWebDavItemBuilder.setView(handleFileView);
+		deleteWebDavItemBuilder.setCancelable(false);
+		
+		// Setting Middle Button
+		deleteWebDavItemBuilder.setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				dismissDeleteWebDavItemProgressDialog();
+            }
+        });
+		
+		
+		deleteWebDavItemProgressAlertDialog = deleteWebDavItemBuilder.create();
+		deleteWebDavItemProgressAlertDialog.show();
+
+	}
+
+	private void dismissDeleteWebDavItemProgressDialog(){
+		
+		isStopDelete = true;		
+		cloudFileListAdapter.cleanAllSelected();
+		if (actionMode != null) {
+			actionMode.finish();
+		}
+		
+		if (deleteWebDavItemProgressAlertDialog.isShowing()) {
+			deleteWebDavItemProgressAlertDialog.dismiss();
+		}
+		showFileList(currentPath);
+	}
+	
 	@Override
 	public void onItemClick(AdapterView<?> parent, View view, int position,
 			long id) {
@@ -555,8 +641,8 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 			break;
 		}
 
-		Log.d("Mylog", "parentPath=" + parentPath);
-		Log.d("Mylog", "currentPath=" + currentPath);
+//		Log.d("Mylog", "parentPath=" + parentPath);
+//		Log.d("Mylog", "currentPath=" + currentPath);
 
 	}
 
@@ -583,12 +669,86 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 				int index = currentPath.lastIndexOf("/");
 				parentPath = currentPath.substring(0, index);
 			}
-
+			
 			break;
 			
 		default:
 			break;
 		}
+	}
+
+	@Override
+	public boolean onCreateActionMode(ActionMode actionMode, Menu menu) {
+        MenuInflater inflater = actionMode.getMenuInflater();
+        inflater.inflate(R.menu.cloud_manage_menu, menu);
+        this.actionMode = actionMode;
+
+		return true;
+	}
+
+	@Override
+	public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+		return false;
+	}
+
+	@Override
+	public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+        switch (item.getItemId()) {
+		case R.id.cloudManageMenu_delete:
+			
+			ArrayList<WebDavItemEntity> deleteWebDavItemEntities = new ArrayList<WebDavItemEntity>();
+			
+			ArrayList<WebDavItemEntity> webDavItemEntities = cloudFileListAdapter.getWebDavItemEntities();
+			
+			for (WebDavItemEntity webDavItemEntity : webDavItemEntities) {
+//				Log.d("Mylog", "webDavItemEntity=" + webDavItemEntity.getName()
+//						+ " is " + webDavItemEntity.isChecked());
+				
+				if (webDavItemEntity.isChecked()) {
+					deleteWebDavItemEntities.add(webDavItemEntity);
+				}
+			}
+			
+			deleteWebDaveItem(deleteWebDavItemEntities);
+			
+//			ArrayList<ActionModeFileEntity> uploadFileArrayList = new ArrayList<ActionModeFileEntity>();
+//			
+//			ArrayList<ActionModeFileEntity> fileArrayList = localFileListAdapter
+//					.getActionModeFileEntities();
+//			
+//			for (ActionModeFileEntity actionModeFileEntity : fileArrayList) {
+//				
+//				if (actionModeFileEntity.isChecked()){
+//					uploadFileArrayList.add(actionModeFileEntity);
+//				}
+//			}
+//			
+//			uploadFile(uploadFileArrayList);
+//			
+			return true;
+			
+		default:
+			return false;
+		}
+	}
+
+	@Override
+	public void onDestroyActionMode(ActionMode mode) {
+		cloudFileListAdapter.cleanAllSelected();
+		actionMode = null;
+		
+	}
+
+	@Override
+	public void onItemCheckedStateChanged(ActionMode mode, int position,
+			long id, boolean isChecked) {
+
+		if (isChecked) {
+			cloudFileListAdapter.selected(position);
+		} else {
+			cloudFileListAdapter.unselected(position);
+		}
+
 	}
 
 }

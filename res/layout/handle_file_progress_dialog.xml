@@ -5,7 +5,7 @@
     android:orientation="vertical" >
 
     <TextView
-        android:id="@+id/localFileList_uploadFileDialog_currentFileNameTextView"
+        android:id="@+id/handleFileProgressDialog_currentFileNameTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="10dp"
@@ -14,36 +14,36 @@
         android:text="xxx.mp3" />
 
     <ProgressBar
-        android:id="@+id/localFileList_uploadFileDialog_progressBar"
+        android:id="@+id/handleFileProgressDialog_progressBar"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/localFileList_uploadFileDialog_currentFileNameTextView"
+        android:layout_below="@+id/handleFileProgressDialog_currentFileNameTextView"
         android:layout_margin="10dp" />
 
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/localFileList_uploadFileDialog_progressBar"
+        android:layout_below="@+id/handleFileProgressDialog_progressBar"
         android:layout_centerHorizontal="true"
         android:gravity="right" >
 
         <TextView
-            android:id="@+id/localFileList_uploadFileDialog_currentNumberTextView"
+            android:id="@+id/handleFileProgressDialog_currentNumberTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginRight="10dp"
             android:text="1" />
 
         <TextView
-            android:id="@+id/localFileList_uploadFileDialog_TextView"
+            android:id="@+id/handleFileProgressDialog_TextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginRight="10dp"
             android:text="/" />
 
         <TextView
-            android:id="@+id/localFileList_uploadFileDialog_totalTextView"
+            android:id="@+id/handleFileProgressDialog_totalTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginRight="10dp"

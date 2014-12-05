@@ -6,6 +6,7 @@ public class WebDavItemEntity implements Serializable {
 
 	private static final long serialVersionUID = 281356543384650996L;
 
+	private boolean isChecked = false;
 	private String name;
 	private ItemType itemType;
 	private FileType fileType;
@@ -14,6 +15,14 @@ public class WebDavItemEntity implements Serializable {
 	private String size;
 	private String url;
 	private String playUrl;
+
+	public boolean isChecked() {
+		return isChecked;
+	}
+
+	public void setChecked(boolean isChecked) {
+		this.isChecked = isChecked;
+	}
 
 	public String getName() {
 		return name;

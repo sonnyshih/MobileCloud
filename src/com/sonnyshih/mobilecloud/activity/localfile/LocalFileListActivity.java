@@ -1,7 +1,6 @@
-package com.sonnyshih.mobilecloud.activity.cloud;
+package com.sonnyshih.mobilecloud.activity.localfile;
 
 import java.io.File;
-import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -16,10 +15,13 @@ import com.sonnyshih.mobilecloud.manage.WebDavManager.UploadHandler;
 import com.sonnyshih.mobilecloud.ui.adapter.LocalFileListAdapter;
 import com.sonnyshih.mobilecloud.util.FileUtil;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.ActionMode;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -32,10 +34,13 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 public class LocalFileListActivity extends BaseFragmentActivity implements
 		OnClickListener, OnItemClickListener, MultiChoiceModeListener, UploadHandler {
+	
+	private boolean isStopUpload = true;
 	
 	private Button cancelButton;
 	private ListView listView;
@@ -53,6 +58,13 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 //	private String hostName;
 //	private String hostPort;
 	private Thread uploadFileThread;
+	private AlertDialog uploadProgressAlertDialog;
+	private TextView currentFileNameTextView;
+	private ProgressBar progressBar;
+	
+	private int currentNumber = 0;
+	private TextView currentNumberTextView;
+	private TextView totalTextView;
 	
 	@Override
 	protected void onStart() {
@@ -162,6 +174,11 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 	
 	private void uploadFile(final ArrayList<ActionModeFileEntity> fileArrayList){
 		
+		ShowUploadFileProgressDialog();
+		currentNumber = 0;
+		totalTextView.setText(Integer.toString(fileArrayList.size()));
+		progressBar.setMax(50);
+		isStopUpload = false;
 		
 		uploadFileThread = new Thread(new Runnable() {
 			
@@ -169,12 +186,26 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 			public void run() {
 				
 				for (ActionModeFileEntity actionModeFileEntity : fileArrayList) {
-					String fileName = actionModeFileEntity.getFile().getName();
+					
+					// stop uploading file;
+					if (isStopUpload) {
+						return;
+					}
+					
+					final String fileName = actionModeFileEntity.getFile().getName();
 					String uploadPath = currentPath;
 					String fileLocalPath = actionModeFileEntity.getFile().getPath();
 					
-					Log.d("Mylog", "file Name: " + fileName + " uploadPath: "
-							+ uploadPath + " fileLocalPath: " + fileLocalPath);
+					runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							currentNumber++;
+							currentNumberTextView.setText(Integer.toString(currentNumber));
+							currentFileNameTextView.setText(fileName);
+						}
+					});
+
+					progressBar.setProgress(0);
 					
 					boolean isExsitOnWebDav = isExsitOnWebDav(fileName);
 					
@@ -192,7 +223,7 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 						public void run() {
 							localFileListAdapter.cleanAllSelected();
 							actionMode.finish();
-							finish();
+							dismissUploadFileProgressDialog();
 						}
 					});
 				}
@@ -217,6 +248,56 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 	}
 
 	
+	private void ShowUploadFileProgressDialog(){
+		LayoutInflater layoutInflater = LayoutInflater.from(this);
+		View uploadFileView = layoutInflater.inflate(R.layout.upload_file_progress_dialog, null);
+		
+		
+		currentFileNameTextView = (TextView) uploadFileView
+				.findViewById(R.id.localFileList_uploadFileDialog_currentFileNameTextView);
+		progressBar = (ProgressBar) uploadFileView
+				.findViewById(R.id.localFileList_uploadFileDialog_progressBar);
+		currentNumberTextView = (TextView) uploadFileView
+				.findViewById(R.id.localFileList_uploadFileDialog_currentNumberTextView);
+		totalTextView = (TextView) uploadFileView
+				.findViewById(R.id.localFileList_uploadFileDialog_totalTextView);
+		
+		AlertDialog.Builder uploadFileBuilder = new AlertDialog.Builder(this);
+		uploadFileBuilder.setTitle("Uploading...");
+		uploadFileBuilder.setIcon(android.R.drawable.ic_menu_info_details);
+		uploadFileBuilder.setView(uploadFileView);
+		uploadFileBuilder.setCancelable(false);
+		
+		// Setting Middle Button
+		uploadFileBuilder.setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				dismissUploadFileProgressDialog();
+            }
+        });
+		
+		
+		uploadProgressAlertDialog = uploadFileBuilder.create();
+		uploadProgressAlertDialog.show();
+
+	}
+	
+	private void dismissUploadFileProgressDialog(){
+		
+		isStopUpload = true;
+		WebDavManager.getInstance().stopUploadFile();
+		Log.d("Hello", "stop1111");
+		
+		localFileListAdapter.cleanAllSelected();
+		if (actionMode != null) {
+			actionMode.finish();
+		}
+		
+		if (uploadProgressAlertDialog.isShowing()) {
+			uploadProgressAlertDialog.dismiss();
+		}
+	}
+	
 	@Override
 	public void onBackPressed() {
 		super.onBackPressed();
@@ -231,27 +312,6 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 		
 		if (file.isDirectory()) {
 			getForderAndFileList(file);
-		} else {
-			
-//			new Thread(new Runnable() {
-//				
-//				@Override
-//				public void run() {
-//					
-//					String fileName = file.getName();
-//					String uploadPath = currentPath;
-//					String fileLocalPath = file.getPath();
-//					
-//					Log.d("Mylog", "file Name: " + fileName + " uploadPath: "
-//							+ uploadPath + " fileLocalPath: " + fileLocalPath);
-//					
-//					WebDavManager.getInstance().uploadFile(
-//							LocalFileListActivity.this, false, fileName,
-//							uploadPath, fileLocalPath);
-//					
-//				}
-//			}).start();
-			
 		}
 	}
 	
@@ -299,12 +359,7 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 			ArrayList<ActionModeFileEntity> fileArrayList = localFileListAdapter
 					.getActionModeFileEntities();
 			
-			
-			
 			for (ActionModeFileEntity actionModeFileEntity : fileArrayList) {
-//				Log.d("Mylog", "actionModeFileEntity="
-//						+ actionModeFileEntity.getFile().getName() + " is "
-//						+ actionModeFileEntity.isChecked());
 				
 				if (actionModeFileEntity.isChecked()){
 					uploadFileArrayList.add(actionModeFileEntity);
@@ -313,10 +368,6 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 			
 			uploadFile(uploadFileArrayList);
 			
-//			onCartClick();
-//			itemCounter = 0;
-//			actionModeListAdapter.cleanAllSelected();
-//			actionMode.finish(); // Action picked, so close the CAB
 			return true;
 			
 		default:
@@ -348,6 +399,7 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 	@Override
 	public void getProgress(int progress) {
 		Log.d("Mylog", "progress = " +progress);
+		progressBar.setProgress(progress);
 	}
 
 	@Override

@@ -35,7 +35,7 @@
         
         
         <activity
-            android:name=".activity.cloud.LocalFileListActivity"
+            android:name="com.sonnyshih.mobilecloud.activity.localfile.LocalFileListActivity"
             android:configChanges="orientation|keyboardHidden|navigation|screenSize"/>
         
         <!-- 

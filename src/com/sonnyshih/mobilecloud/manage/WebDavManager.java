@@ -45,6 +45,7 @@ public class WebDavManager {
 	private String port;
 	private String username;
 	private String password;
+	private boolean isUploading = false;
 	
 	
 	public WebDavManager(){
@@ -146,19 +147,18 @@ public class WebDavManager {
         try {
         	Client.executeMethod(mkCol);
 		} catch (HttpException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}		
 
 	}
 	
-	
 	public void uploadFile(final UploadHandler uploadHandler,
 			boolean isFileExist, String fileName, String uploadPath,
 			String fileLocalPath) {
+
+		isUploading = true;
 
 		String path = "";
 		if (isFileExist) {
@@ -173,7 +173,6 @@ public class WebDavManager {
 			e2.printStackTrace();
 		}
 		
-		
 		String url;
 		url = "http://" + host + ":" + port + path;
 		
@@ -184,32 +183,27 @@ public class WebDavManager {
 		FileRequestEntity entity = new FileRequestEntity(file,
 				getContentType(file));
 		
+		final PutMethod putMethod = new PutMethod(url);
+
 		UploadRequestEntity requestEntity = new UploadRequestEntity(entity,
 				new UploadProgressListener(new Observer() {
 
 					@Override
 					public void update(Observable observable, Object data) {
-//						Log.d("Mylog", "data=" + data.toString() + " int = "
-//								+ Float.parseFloat(data.toString()));
-						//						progress = (int) Float.parseFloat(data.toString());
+						if (isUploading) {
+							uploadHandler.getProgress((int) Float.parseFloat(data.toString()));
+						} else {
+							putMethod.abort();
+						}
 						
-						uploadHandler.getProgress((int) Float.parseFloat(data.toString()));
 						
 					}
 				}, bytesToSend));
 		
-		PutMethod putMethod = new PutMethod(url);
 		putMethod.setRequestEntity(requestEntity);
 
 		try {
 			Client.executeMethod(putMethod);
-//			Log.d("Mylog", putMethod.getStatusCode() + " " + putMethod.getStatusText());
-//			Log.d("Mylog", "ResponseBody as String: "+putMethod.getResponseBodyAsString());
-//		
-//			int response = ((HttpMethod) putMethod).getStatusCode();
-//			Log.d("Mylog", "succeed: "+putMethod.succeeded());
-//			Log.d("Mylog", "response code ="+ response);
-
 			uploadHandler.getMessage(putMethod.getStatusCode(), putMethod.getStatusText());
 			
 		} catch (HttpException e) {
@@ -218,59 +212,13 @@ public class WebDavManager {
 			e.printStackTrace();
 		}
 
-		
-//		try {
-//			FileRequestEntity entity = new FileRequestEntity(file,
-//					getContentType(file));
-//			UploadRequestEntity requestEntity;
-//			long bytesToSend = file.length();
-//			// progressFlag = false;
-//			// if(txtFileName != null)
-//			// handle.post(new Runnable() {
-//			// public void run() {
-//			// txtFileName.setText("Uploading "+fileName);
-//			// }
-//			// });
-//			requestEntity = new UploadRequestEntity(entity,
-//					new UploadProgressListener(new Observer() {
-//						public void update(Observable observable, Object data) {
-//							// System.out.println("data="+data.toString());
-//							// System.out.println("progress="+progress);
-//							// if(Float.parseFloat(data.toString()) >= 50.0)
-//							// progressFlag = true;
-//							// if(!progressFlag)
-//							// progress = (int)
-//							// Float.parseFloat(data.toString());
-//							// else
-//							// if(Float.parseFloat(data.toString()) < 50)
-//							// progress = 50 + (int)
-//							// Float.parseFloat(data.toString());
-//							// handle.post(new Runnable() {
-//							// public void run() {
-//							// if(txtPercent != null)
-//							// txtPercent.setText(progress+"%");
-//							// if(progressBar != null)
-//							// progressBar.setProgress(progress);
-//							// }
-//							// });
-//
-//						}
-//					}, bytesToSend));
-//			putMethod.setRequestEntity(requestEntity);
-//
-//			Client.executeMethod(putMethod);
-//			
-//		} catch (FileNotFoundException e1) {
-//			
-//		} catch (HttpException e) {
-//			e.printStackTrace();
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-
 	}
 	
-	public static String getContentType(File f) {
+	public void stopUploadFile(){
+		isUploading = false;
+	}
+	
+	public String getContentType(File f) {
 		Uri selectedUri = Uri.fromFile(f);
 		String fileExtension = MimeTypeMap.getFileExtensionFromUrl(selectedUri.toString());
 	    String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExtension);

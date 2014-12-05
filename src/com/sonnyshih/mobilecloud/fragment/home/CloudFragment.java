@@ -12,8 +12,8 @@ import org.apache.jackrabbit.webdav.property.DavPropertyName;
 import org.apache.jackrabbit.webdav.property.DavPropertySet;
 
 import com.sonnyshih.mobilecloud.R;
-import com.sonnyshih.mobilecloud.activity.cloud.LocalFileListActivity;
 import com.sonnyshih.mobilecloud.activity.home.MainActivity;
+import com.sonnyshih.mobilecloud.activity.localfile.LocalFileListActivity;
 import com.sonnyshih.mobilecloud.base.BaseFragment;
 import com.sonnyshih.mobilecloud.entity.FileType;
 import com.sonnyshih.mobilecloud.entity.ItemType;
@@ -25,11 +25,9 @@ import com.sonnyshih.mobilecloud.util.FileUtil;
 import com.sonnyshih.mobilecloud.util.StringUtil;
 
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.ActionMode;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;

@@ -20,11 +20,14 @@ import org.apache.jackrabbit.webdav.DavConstants;
 import org.apache.jackrabbit.webdav.DavException;
 import org.apache.jackrabbit.webdav.MultiStatus;
 import org.apache.jackrabbit.webdav.MultiStatusResponse;
+import org.apache.jackrabbit.webdav.client.methods.CopyMethod;
 import org.apache.jackrabbit.webdav.client.methods.MkColMethod;
+import org.apache.jackrabbit.webdav.client.methods.MoveMethod;
 import org.apache.jackrabbit.webdav.client.methods.PropFindMethod;
 import org.apache.jackrabbit.webdav.client.methods.PutMethod;
 
 import android.net.Uri;
+import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import com.sonnyshih.mobilecloud.upload.UploadProgressListener;
@@ -150,6 +153,7 @@ public class WebDavManager {
 
 	}
 	
+	// upload file
 	public void uploadFile(final UploadHandler uploadHandler,
 			boolean isFileExist, String fileName, String uploadPath,
 			String fileLocalPath) {
@@ -221,6 +225,58 @@ public class WebDavManager {
 	    return mimeType;
 	}
 	
+
+	// copy webdav file
+	public void copyWebDavItem(String originalUrl , String destintionPath, String destinationName){
+		
+		String path = destintionPath + "/" + destinationName;
+		try {
+			path = StringUtil.pathEncodeURL(path);
+		} catch (UnsupportedEncodingException e2) {
+			e2.printStackTrace();
+		}
+		
+		String destintionUrl;
+		destintionUrl = "http://" + host + ":" + port + path;
+		
+		CopyMethod copyMethod = new CopyMethod(originalUrl, destintionUrl, false);
+		try {
+			Client.executeMethod(copyMethod);
+		} catch (HttpException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
+	// move webdav file
+	public void moveWebDavItem(String originalUrl , String destintionPath, String destinationName){
+		
+		String path = destintionPath + "/" + destinationName;
+		try {
+			path = StringUtil.pathEncodeURL(path);
+		} catch (UnsupportedEncodingException e2) {
+			e2.printStackTrace();
+		}
+
+		
+		String destintionUrl;
+		destintionUrl = "http://" + host + ":" + port + path;
+
+		Log.d("Mylog", "originalUrl="+originalUrl+"## destintionUrl="+destintionUrl);
+		
+		MoveMethod moveMethod = new MoveMethod(originalUrl, destintionUrl, true);
+		try {
+			Client.executeMethod(moveMethod);
+		} catch (HttpException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	// delete webdav file.
 	public void deleteWebDavItem(String path){
         DeleteMethod delete = new DeleteMethod(path);
         

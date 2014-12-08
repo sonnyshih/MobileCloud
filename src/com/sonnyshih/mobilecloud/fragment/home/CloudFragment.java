@@ -15,7 +15,6 @@ import com.sonnyshih.mobilecloud.R;
 import com.sonnyshih.mobilecloud.activity.home.MainActivity;
 import com.sonnyshih.mobilecloud.activity.localfile.LocalFileListActivity;
 import com.sonnyshih.mobilecloud.base.BaseFragment;
-import com.sonnyshih.mobilecloud.entity.ActionModeFileEntity;
 import com.sonnyshih.mobilecloud.entity.FileType;
 import com.sonnyshih.mobilecloud.entity.ItemType;
 import com.sonnyshih.mobilecloud.entity.WebDavItemEntity;
@@ -29,7 +28,6 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.ActionMode;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -44,7 +42,6 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
@@ -59,13 +56,18 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	
 	private String parentPath = "";
 	private String currentPath = "";
-	private String currentFolderName = "";
 	
 	private WebDavManager webDavManager;
 	private ArrayList<WebDavItemEntity> webDavItemEntities = new ArrayList<WebDavItemEntity>();
 	private ListView fileListView;
 	private CloudFileListAdapter cloudFileListAdapter;
 	private ProgressBar progressBar;
+	
+	private ArrayList<WebDavItemEntity> selectedWebDavItemEntities;
+	private LinearLayout copyAndMoveLayout;
+	private Button cancelButton;
+	private Button moveHereButton;
+	private Button copyHereButton;
 	private LinearLayout backArrowLayout;
 	private TextView currentFolderNameTextView;
 	private ImageButton backButton;
@@ -75,14 +77,15 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	private EditText newFolderNameEditText;
 	private Button createOKButton;
 	private Button createCancelButton;
-	
-
 	private ActionMode actionMode;
-	
+	private boolean isStopCopy = false;
+	private boolean isStopMove = false;
 	private boolean isStopDelete = false;
-	private Thread uploadFileThread;
-	private AlertDialog deleteWebDavItemProgressAlertDialog;
-	private ProgressBar deleteProgressBar;
+	private Thread copyWebDavItemThread;
+	private Thread moveWebDavItemThread;
+	private Thread deleteWebDavItemThread;
+	private AlertDialog handleFileProgressAlertDialog;
+	private ProgressBar handleProgressBar;
 	private int currentNumber = 0;
 	private TextView currentFileNameTextView;
 	private TextView currentNumberTextView;
@@ -102,8 +105,16 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		View view = inflater
 				.inflate(R.layout.cloud_fragement, container, false);
 
-		backArrowLayout = (LinearLayout) view.findViewById(R.id.cloud_backArrowLayout);
+		copyAndMoveLayout = (LinearLayout) view.findViewById(R.id.cloud_copyAndMoveLayout);
+		cancelButton = (Button) view.findViewById(R.id.cloud_cancelButton);
+		cancelButton.setOnClickListener(this);
+		moveHereButton = (Button) view.findViewById(R.id.cloud_moveHereButton);
+		moveHereButton.setOnClickListener(this);
+		copyHereButton = (Button) view.findViewById(R.id.cloud_copyHereButton);
+		copyHereButton.setOnClickListener(this);
 		
+		
+		backArrowLayout = (LinearLayout) view.findViewById(R.id.cloud_backArrowLayout);
 		currentFolderNameTextView = (TextView) view.findViewById(R.id.cloud_currentFolderNameTextView);
 		backButton = (ImageButton) view.findViewById(R.id.cloud_backButton);
 		backButton.setOnClickListener(this);
@@ -224,6 +235,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 				// add the up arrow icon at the first position.
 				if (StringUtil.isEmpty(path)) {
 					backArrowLayout.setVisibility(View.GONE);
+					copyAndMoveLayout.setVisibility(View.GONE);
 				} else {
 					folderName = getFolderName(path);
 					backArrowLayout.setVisibility(View.VISIBLE);
@@ -506,19 +518,163 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	}
 	
 	
-	private void deleteWebDaveItem(final ArrayList<WebDavItemEntity> deleteWebDavItemEntities){
-		showDeleteWebDaveItemProgressDialog();
-		currentNumber = 0;
-		totalTextView.setText(Integer.toString(deleteWebDavItemEntities.size()));
-		deleteProgressBar.setMax(deleteWebDavItemEntities.size());
-		isStopDelete = false;
+	private void copyWebDaveItem(final ArrayList<WebDavItemEntity> copyWebDavItemEntities){
 		
-		uploadFileThread = new Thread(new Runnable() {
+		showHandleWebDavItemProgressDialog("Coping files...");
+		currentNumber = 0;
+		totalTextView.setText(Integer.toString(copyWebDavItemEntities.size()));
+		handleProgressBar.setMax(copyWebDavItemEntities.size());
+		isStopCopy = false;
+		
+		copyWebDavItemThread = new Thread(new Runnable() {
 			
 			@Override
 			public void run() {
 				
-				deleteProgressBar.setProgress(0);
+				handleProgressBar.setProgress(0);
+				
+				for (WebDavItemEntity copyWebDavItemEntity : copyWebDavItemEntities) {
+					
+					// Stop copy 
+					if (isStopCopy) {
+						return;
+					}
+					
+					final String webDavItemName = copyWebDavItemEntity.getName();
+					
+					getActivity().runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							currentNumber++;
+							currentNumberTextView.setText(Integer.toString(currentNumber));
+							currentFileNameTextView.setText(webDavItemName);
+						}
+					});
+
+					handleProgressBar.setProgress(currentNumber);
+					
+					String destinationName = webDavItemName;
+
+					for (WebDavItemEntity webDavItemEntity : webDavItemEntities) {
+						if (webDavItemName.equals(webDavItemEntity.getName())) {
+							destinationName = "copy_" + webDavItemName;
+						}
+					}
+					
+					WebDavManager.getInstance().copyWebDavItem(
+							copyWebDavItemEntity.getUrl(), currentPath,
+							destinationName);
+					
+					try {
+						Thread.sleep(500);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+
+				}
+
+				
+				getActivity().runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						cloudFileListAdapter.cleanAllSelected();
+						dismissHandleWebDavItemProgressDialog();
+					}
+				});
+
+			}
+		});		
+		
+		copyWebDavItemThread.start();
+		
+	}
+	
+	
+	
+	private void moveWebDaveItem(final ArrayList<WebDavItemEntity> moveWebDavItemEntities){
+		
+		showHandleWebDavItemProgressDialog("Moving files...");
+		currentNumber = 0;
+		totalTextView.setText(Integer.toString(moveWebDavItemEntities.size()));
+		handleProgressBar.setMax(moveWebDavItemEntities.size());
+		isStopMove = false;
+		
+		moveWebDavItemThread = new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				
+				handleProgressBar.setProgress(0);
+				
+				for (WebDavItemEntity moveWebDavItemEntity : moveWebDavItemEntities) {
+					
+					// Stop delete 
+					if (isStopMove) {
+						return;
+					}
+					
+					final String webDavItemName = moveWebDavItemEntity.getName();
+					
+					getActivity().runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							currentNumber++;
+							currentNumberTextView.setText(Integer.toString(currentNumber));
+							currentFileNameTextView.setText(webDavItemName);
+						}
+					});
+
+					handleProgressBar.setProgress(currentNumber);
+					
+					String destinationName = webDavItemName;
+
+					for (WebDavItemEntity webDavItemEntity : webDavItemEntities) {
+						if (webDavItemName.equals(webDavItemEntity.getName())) {
+							destinationName = "move_" + webDavItemName;
+						}
+					}
+					
+					WebDavManager.getInstance().moveWebDavItem(
+							moveWebDavItemEntity.getUrl(), currentPath,
+							destinationName);
+					
+					try {
+						Thread.sleep(500);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+
+				}
+
+				
+				getActivity().runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						cloudFileListAdapter.cleanAllSelected();
+						dismissHandleWebDavItemProgressDialog();
+					}
+				});
+
+			}
+		});		
+		
+		moveWebDavItemThread.start();
+		
+	}
+	
+	private void deleteWebDaveItem(final ArrayList<WebDavItemEntity> deleteWebDavItemEntities){
+		showHandleWebDavItemProgressDialog("Deleting files...");
+		currentNumber = 0;
+		totalTextView.setText(Integer.toString(deleteWebDavItemEntities.size()));
+		handleProgressBar.setMax(deleteWebDavItemEntities.size());
+		isStopDelete = false;
+		
+		deleteWebDavItemThread = new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				
+				handleProgressBar.setProgress(0);
 				
 				for (WebDavItemEntity webDavItemEntity : deleteWebDavItemEntities) {
 					
@@ -538,7 +694,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 						}
 					});
 
-					deleteProgressBar.setProgress(currentNumber);
+					handleProgressBar.setProgress(currentNumber);
 					WebDavManager.getInstance().deleteWebDavItem(webDavItemEntity.getUrl());
 					try {
 						Thread.sleep(500);
@@ -555,7 +711,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 						public void run() {
 							cloudFileListAdapter.cleanAllSelected();
 							actionMode.finish();
-							dismissDeleteWebDavItemProgressDialog();
+							dismissHandleWebDavItemProgressDialog();
 						}
 					});
 				}
@@ -563,57 +719,117 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 			}
 		});		
 		
-		uploadFileThread.start();
+		deleteWebDavItemThread.start();
 
 	}
 	
-	private void showDeleteWebDaveItemProgressDialog(){
+	private void showHandleWebDavItemProgressDialog(String dialogTitle){
 		LayoutInflater layoutInflater = LayoutInflater.from(getActivity());
 		View handleFileView = layoutInflater.inflate(R.layout.handle_file_progress_dialog, null);
 		
 		
 		currentFileNameTextView = (TextView) handleFileView
 				.findViewById(R.id.handleFileProgressDialog_currentFileNameTextView);
-		deleteProgressBar = (ProgressBar) handleFileView
+		handleProgressBar = (ProgressBar) handleFileView
 				.findViewById(R.id.handleFileProgressDialog_progressBar);
 		currentNumberTextView = (TextView) handleFileView
 				.findViewById(R.id.handleFileProgressDialog_currentNumberTextView);
 		totalTextView = (TextView) handleFileView
 				.findViewById(R.id.handleFileProgressDialog_totalTextView);
 		
-		AlertDialog.Builder deleteWebDavItemBuilder = new AlertDialog.Builder(getActivity());
-		deleteWebDavItemBuilder.setTitle("Deleting...");
-		deleteWebDavItemBuilder.setIcon(android.R.drawable.ic_menu_info_details);
-		deleteWebDavItemBuilder.setView(handleFileView);
-		deleteWebDavItemBuilder.setCancelable(false);
+		AlertDialog.Builder webDavItemBuilder = new AlertDialog.Builder(getActivity());
+		webDavItemBuilder.setTitle(dialogTitle);
+		webDavItemBuilder.setIcon(android.R.drawable.ic_menu_info_details);
+		webDavItemBuilder.setView(handleFileView);
+		webDavItemBuilder.setCancelable(false);
 		
 		// Setting Middle Button
-		deleteWebDavItemBuilder.setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
+		webDavItemBuilder.setNeutralButton("Cancel", new DialogInterface.OnClickListener() {
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
-				dismissDeleteWebDavItemProgressDialog();
+				dismissHandleWebDavItemProgressDialog();
             }
         });
 		
-		
-		deleteWebDavItemProgressAlertDialog = deleteWebDavItemBuilder.create();
-		deleteWebDavItemProgressAlertDialog.show();
+		handleFileProgressAlertDialog = webDavItemBuilder.create();
+		handleFileProgressAlertDialog.show();
 
 	}
 
-	private void dismissDeleteWebDavItemProgressDialog(){
+	private void dismissHandleWebDavItemProgressDialog(){
+		isStopCopy = true;
+		isStopMove = true;
+		isStopDelete = true;
 		
-		isStopDelete = true;		
 		cloudFileListAdapter.cleanAllSelected();
 		if (actionMode != null) {
 			actionMode.finish();
 		}
 		
-		if (deleteWebDavItemProgressAlertDialog.isShowing()) {
-			deleteWebDavItemProgressAlertDialog.dismiss();
+		if (handleFileProgressAlertDialog.isShowing()) {
+			handleFileProgressAlertDialog.dismiss();
 		}
 		showFileList(currentPath);
 	}
+	
+	
+	private void onActionModeCopyClick(){
+		
+		selectedWebDavItemEntities = getSelectedWebDavItemEntities();
+		
+		copyAndMoveLayout.setVisibility(View.VISIBLE);
+		copyHereButton.setVisibility(View.VISIBLE);
+		moveHereButton.setVisibility(View.GONE);
+		actionMode.finish();
+	}
+	
+	private void onCopyHereClick(){
+		copyAndMoveLayout.setVisibility(View.GONE);
+		copyWebDaveItem(selectedWebDavItemEntities);
+		
+	}
+	
+	private void onActionModeMoveClick(){
+		selectedWebDavItemEntities = getSelectedWebDavItemEntities();
+
+		copyAndMoveLayout.setVisibility(View.VISIBLE);
+		copyHereButton.setVisibility(View.GONE);
+		moveHereButton.setVisibility(View.VISIBLE);
+		actionMode.finish();
+		
+	}
+	
+	private void onMoveHereClick(){
+		copyAndMoveLayout.setVisibility(View.GONE);
+		moveWebDaveItem(selectedWebDavItemEntities);
+	}
+	
+	
+	private void onActionModeDeleteClick(){
+		selectedWebDavItemEntities = getSelectedWebDavItemEntities();
+		deleteWebDaveItem(selectedWebDavItemEntities);
+	}
+	
+	
+	private ArrayList<WebDavItemEntity> getSelectedWebDavItemEntities(){
+		ArrayList<WebDavItemEntity> selectedWebDavItemEntities = new ArrayList<WebDavItemEntity>();
+		ArrayList<WebDavItemEntity> webDavItemEntities = cloudFileListAdapter.getWebDavItemEntities();
+		
+		for (WebDavItemEntity webDavItemEntity : webDavItemEntities) {
+			if (webDavItemEntity.isChecked()) {
+				selectedWebDavItemEntities.add(webDavItemEntity);
+			}
+		}
+		
+		return selectedWebDavItemEntities;
+	}
+	
+	public void closeActionMode(){
+		if (actionMode != null) {
+			actionMode.finish();
+		}
+	}
+	
 	
 	@Override
 	public void onItemClick(AdapterView<?> parent, View view, int position,
@@ -625,7 +841,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		switch (type) {
 
 		case Folder:
-			currentFolderName = itemName;
 
 			parentPath = currentPath;
 			currentPath += "/" + itemName;
@@ -661,6 +876,10 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 		case R.id.cloud_backButton:
 			
+			if (actionMode != null) {
+				actionMode.finish();
+			}
+			
 			showFileList(parentPath);
 			currentPath = parentPath;
 
@@ -670,6 +889,19 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 				parentPath = currentPath.substring(0, index);
 			}
 			
+			break;
+			
+						
+		case R.id.cloud_cancelButton:
+			copyAndMoveLayout.setVisibility(View.GONE);
+			break;
+
+		case R.id.cloud_copyHereButton:
+			onCopyHereClick();
+			break;
+			
+		case R.id.cloud_moveHereButton:
+			onMoveHereClick();
 			break;
 			
 		default:
@@ -694,37 +926,16 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	@Override
 	public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
         switch (item.getItemId()) {
+		case R.id.cloudManageMenu_copy:
+			onActionModeCopyClick();
+			return true;
+			
+		case R.id.cloudManageMenu_move:
+			onActionModeMoveClick();
+			return true;
+			
 		case R.id.cloudManageMenu_delete:
-			
-			ArrayList<WebDavItemEntity> deleteWebDavItemEntities = new ArrayList<WebDavItemEntity>();
-			
-			ArrayList<WebDavItemEntity> webDavItemEntities = cloudFileListAdapter.getWebDavItemEntities();
-			
-			for (WebDavItemEntity webDavItemEntity : webDavItemEntities) {
-//				Log.d("Mylog", "webDavItemEntity=" + webDavItemEntity.getName()
-//						+ " is " + webDavItemEntity.isChecked());
-				
-				if (webDavItemEntity.isChecked()) {
-					deleteWebDavItemEntities.add(webDavItemEntity);
-				}
-			}
-			
-			deleteWebDaveItem(deleteWebDavItemEntities);
-			
-//			ArrayList<ActionModeFileEntity> uploadFileArrayList = new ArrayList<ActionModeFileEntity>();
-//			
-//			ArrayList<ActionModeFileEntity> fileArrayList = localFileListAdapter
-//					.getActionModeFileEntities();
-//			
-//			for (ActionModeFileEntity actionModeFileEntity : fileArrayList) {
-//				
-//				if (actionModeFileEntity.isChecked()){
-//					uploadFileArrayList.add(actionModeFileEntity);
-//				}
-//			}
-//			
-//			uploadFile(uploadFileArrayList);
-//			
+			onActionModeDeleteClick();
 			return true;
 			
 		default:
@@ -736,7 +947,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	public void onDestroyActionMode(ActionMode mode) {
 		cloudFileListAdapter.cleanAllSelected();
 		actionMode = null;
-		
 	}
 
 	@Override

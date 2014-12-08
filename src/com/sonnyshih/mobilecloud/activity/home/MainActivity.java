@@ -20,13 +20,9 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
 import android.support.v4.view.ViewPager.OnPageChangeListener;
-import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.RelativeLayout;
 import android.widget.TabHost;
 import android.widget.TextView;
 import android.widget.TabHost.OnTabChangeListener;
@@ -39,11 +35,9 @@ public class MainActivity extends BaseFragmentActivity implements
 	private BonjourManage bonjourManage;
 	public static boolean isGetDriveIp = false;
 	
-//	private RelativeLayout relativeLayout;
-//	private RelativeLayout imageLayout;
-
-	// private TextView textView;
-
+	private CloudFragment cloudFragment;
+	private AppleFragment appleFragment;
+	
 	private TabHost tabHost;
 	private ViewPager viewPager;
 	private PagerAdapter pagerAdapter;
@@ -52,12 +46,7 @@ public class MainActivity extends BaseFragmentActivity implements
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main_activity);
-
 		showProgressDialog("Waiting", "Discovering the Mobile Cloud...");
-
-//		relativeLayout = (RelativeLayout) findViewById(R.id.start_relativeLayout);
-//		imageLayout = (RelativeLayout) findViewById(R.id.start_imageLayout);
-		// textView = (TextView) findViewById(R.id.main_textView);
 		
 		initTabHost();
 		initViewPager();
@@ -79,25 +68,6 @@ public class MainActivity extends BaseFragmentActivity implements
 		finish();
 	}
 
-//	@Override
-//	public boolean onCreateOptionsMenu(Menu menu) {
-//		// Inflate the menu; this adds items to the action bar if it is present.
-//		getMenuInflater().inflate(R.menu.main, menu);
-//		return true;
-//	}
-//
-//	@Override
-//	public boolean onOptionsItemSelected(MenuItem item) {
-//		// Handle action bar item clicks here. The action bar will
-//		// automatically handle clicks on the Home/Up button, so long
-//		// as you specify a parent activity in AndroidManifest.xml.
-//		int id = item.getItemId();
-//		if (id == R.id.action_settings) {
-//			return true;
-//		}
-//		return super.onOptionsItemSelected(item);
-//	}	
-	
 	private void initTabHost() {
 		tabHost = (TabHost) findViewById(android.R.id.tabhost);
 		tabHost.setup();
@@ -134,8 +104,11 @@ public class MainActivity extends BaseFragmentActivity implements
 	private void initViewPager() {
 
 		List<Fragment> fragmentList = new ArrayList<Fragment>();
-		fragmentList.add(new CloudFragment());
-		fragmentList.add(new AppleFragment());
+		
+		cloudFragment = new CloudFragment();
+		appleFragment = new AppleFragment();
+		fragmentList.add(cloudFragment);
+		fragmentList.add(appleFragment);
 
 		pagerAdapter = new PagerAdapter(getSupportFragmentManager(),
 				fragmentList);
@@ -149,6 +122,7 @@ public class MainActivity extends BaseFragmentActivity implements
 	public void onTabChanged(String tag) {
 		int position = tabHost.getCurrentTab();
 		viewPager.setCurrentItem(position);
+		cloudFragment.closeActionMode();
 	}
 
 	@Override
@@ -160,6 +134,7 @@ public class MainActivity extends BaseFragmentActivity implements
 	@Override
 	public void onPageSelected(int position) {
 		tabHost.setCurrentTab(position);
+		cloudFragment.closeActionMode();
 	}
 
 	@Override

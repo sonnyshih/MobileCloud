@@ -6,110 +6,68 @@ import java.io.OutputStream;
 
 import org.apache.commons.httpclient.methods.RequestEntity;
 
-public class UploadRequestEntity implements RequestEntity {
+public class UploadRequestEntity implements RequestEntity{
 
-	/**
-     * RequestEntity
-     */
-    private final RequestEntity entity;
+	private final RequestEntity requestEntity;
 
-    /**
-     * ProgressListener
-     */
-    private final ProgressListener listener;
+    private final ProgressListener progressListener;
+	
+	public UploadRequestEntity(final RequestEntity entity,
+			final ProgressListener progressListener) {
+		super();
+		this.requestEntity = entity;
+		this.progressListener = progressListener;
+	}
+	
+	@Override
+	public long getContentLength() {
+		return requestEntity.getContentLength();
+	}
 
-    /**
-     * @param entity
-     * @param listener
-     */
-    public UploadRequestEntity(final RequestEntity entity, final ProgressListener listener) {
-            super();
-            this.entity = entity;
+	@Override
+	public String getContentType() {
+		return requestEntity.getContentType();
+	}
+
+	@Override
+	public boolean isRepeatable() {
+		return requestEntity.isRepeatable();
+	}
+
+	@Override
+	public void writeRequest(final OutputStream out) throws IOException {
+		this.requestEntity.writeRequest(new CountingOutputStream(out, progressListener));
+		
+	}
+
+	
+	public static class CountingOutputStream extends FilterOutputStream {
+
+        private final ProgressListener listener;
+
+        private long transferred;
+
+        public CountingOutputStream(final OutputStream out,
+                final ProgressListener listener) {
+            super(out);
             this.listener = listener;
-    }
+            this.transferred = 0;
+        }
 
-    /** (non-Javadoc)
-     * @see org.apache.commons.httpclient.methods.RequestEntity#getContentLength()
-     */
-    public long getContentLength() {
-            return this.entity.getContentLength();
-    }
+        public void write(byte[] b, int off, int len) throws IOException {
+            out.write(b, off, len);
+            this.transferred += len;
+            this.listener.transferred(this.transferred);
+        }
 
-    /** (non-Javadoc)
-     * @see org.apache.commons.httpclient.methods.RequestEntity#getContentType()
-     */
-    public String getContentType() {
-            return this.entity.getContentType();
-    }
-
-    /** (non-Javadoc)
-     * @see org.apache.commons.httpclient.methods.RequestEntity#isRepeatable()
-     */
-    public boolean isRepeatable() {
-            return this.entity.isRepeatable();
-    }
-
-    /** (non-Javadoc)
-     * @see org.apache.commons.httpclient.methods.RequestEntity#writeRequest(java.io.OutputStream)
-     */
-    public void writeRequest(final OutputStream out) throws IOException {
-            this.entity.writeRequest(new CountingOutputStream(out, this.listener));
-    }
-
-    /**
-     * @author Sa禳a Stamenkovi�?<umpirsky@gmail.com>
-     *
-     */
+        public void write(int b) throws IOException {
+            out.write(b);
+            this.transferred++;
+            this.listener.transferred(this.transferred);
+        }
+    }	
+	
     public static interface ProgressListener {
-            /**
-             * @param bytes
-             */
-            void transferred(long bytes);
+        void transferred(long num);
     }
-
-    /**
-     * @author <umpirsky@gmail.com>
-     *
-     */
-    public static class CountingOutputStream extends FilterOutputStream {
-            /**
-             * ProgressListener
-             */
-            private final ProgressListener listener;
-            /**
-             * Bytes transfered
-             */
-            private long transferred;
-
-            /**
-             * @param out
-             * @param listener
-             */
-            public CountingOutputStream(final OutputStream out, final ProgressListener listener) {
-                    super(out);
-                    this.listener = listener;
-                    this.transferred = 0;
-            }
-
-            /** (non-Javadoc)
-             * @see java.io.FilterOutputStream#write(byte[], int, int)
-             */
-            @Override
-            public void write(byte[] b, int off, int len) throws IOException {
-                    super.write(b, off, len);
-                    this.transferred += len;
-                    this.listener.transferred(this.transferred);
-            }
-
-            /** (non-Javadoc)
-             * @see java.io.FilterOutputStream#write(int)
-             */
-            @Override
-            public void write(int b) throws IOException {
-                    super.write(b);
-                    this.transferred++;
-            }
-
-    }
-
 }

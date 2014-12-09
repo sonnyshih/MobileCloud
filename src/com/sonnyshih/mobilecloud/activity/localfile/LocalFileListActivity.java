@@ -19,7 +19,6 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.ActionMode;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -55,8 +54,6 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 	
 	private String currentPath;
 	private ArrayList<WebDavItemEntity> webDavItemEntities;
-//	private String hostName;
-//	private String hostPort;
 	private Thread uploadFileThread;
 	private AlertDialog uploadProgressAlertDialog;
 	
@@ -69,8 +66,6 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 	@Override
 	protected void onStart() {
 		super.onStart();
-//		hostName = ApplicationManager.getInstance().getDriveIp();
-//		hostPort = ApplicationManager.getInstance().getDrivePort();
 		
 		Intent intent = this.getIntent();
 		Bundle bundle = intent.getExtras();
@@ -172,7 +167,6 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 		ShowUploadFileProgressDialog();
 		currentNumber = 0;
 		totalTextView.setText(Integer.toString(fileArrayList.size()));
-		progressBar.setMax(50);
 		isStopUpload = false;
 		
 		uploadFileThread = new Thread(new Runnable() {
@@ -182,6 +176,8 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 				
 				for (ActionModeFileEntity actionModeFileEntity : fileArrayList) {
 					
+					progressBar.setMax((int) actionModeFileEntity.getFile().length());
+
 					// stop uploading file;
 					if (isStopUpload) {
 						return;

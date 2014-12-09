@@ -2,9 +2,6 @@ package com.sonnyshih.mobilecloud.manage;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.Observable;
-import java.util.Observer;
 
 import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpClient;
@@ -27,11 +24,10 @@ import org.apache.jackrabbit.webdav.client.methods.PropFindMethod;
 import org.apache.jackrabbit.webdav.client.methods.PutMethod;
 
 import android.net.Uri;
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 
-import com.sonnyshih.mobilecloud.upload.UploadProgressListener;
 import com.sonnyshih.mobilecloud.upload.UploadRequestEntity;
+import com.sonnyshih.mobilecloud.upload.UploadRequestEntity.ProgressListener;
 import com.sonnyshih.mobilecloud.util.StringUtil;
 
 public class WebDavManager {
@@ -44,8 +40,6 @@ public class WebDavManager {
 	private String username;
 	private String password;
 	private boolean isUploading = false;
-//	private boolean isDeleting = false;
-	
 	
 	public WebDavManager(){
 	}
@@ -167,38 +161,32 @@ public class WebDavManager {
 			path = uploadPath + "/" + fileName;
 		}
 
-		try {
-			path = StringUtil.pathEncodeURL(path);
-		} catch (UnsupportedEncodingException e2) {
-			e2.printStackTrace();
-		}
+		path = StringUtil.pathEncodeURL(path);
 		
 		String url;
 		url = "http://" + host + ":" + port + path;
 		
 
 		File file = new File(fileLocalPath);
-		long bytesToSend = file.length();
 		
 		FileRequestEntity entity = new FileRequestEntity(file,
 				getContentType(file));
 		
 		final PutMethod putMethod = new PutMethod(url);
 
-		UploadRequestEntity requestEntity = new UploadRequestEntity(entity,
-				new UploadProgressListener(new Observer() {
+		UploadRequestEntity requestEntity = new UploadRequestEntity(
+				entity, new ProgressListener() {
 
 					@Override
-					public void update(Observable observable, Object data) {
+					public void transferred(long num) {
 						if (isUploading) {
-							uploadHandler.getProgress((int) Float.parseFloat(data.toString()));
+							uploadHandler.getProgress((int) num);
 						} else {
 							putMethod.abort();
 						}
 						
-						
 					}
-				}, bytesToSend));
+				});
 		
 		putMethod.setRequestEntity(requestEntity);
 
@@ -230,11 +218,7 @@ public class WebDavManager {
 	public void copyWebDavItem(String originalUrl , String destintionPath, String destinationName){
 		
 		String path = destintionPath + "/" + destinationName;
-		try {
-			path = StringUtil.pathEncodeURL(path);
-		} catch (UnsupportedEncodingException e2) {
-			e2.printStackTrace();
-		}
+		path = StringUtil.pathEncodeURL(path);
 		
 		String destintionUrl;
 		destintionUrl = "http://" + host + ":" + port + path;
@@ -254,18 +238,11 @@ public class WebDavManager {
 	public void moveWebDavItem(String originalUrl , String destintionPath, String destinationName){
 		
 		String path = destintionPath + "/" + destinationName;
-		try {
-			path = StringUtil.pathEncodeURL(path);
-		} catch (UnsupportedEncodingException e2) {
-			e2.printStackTrace();
-		}
-
+		path = StringUtil.pathEncodeURL(path);
 		
 		String destintionUrl;
 		destintionUrl = "http://" + host + ":" + port + path;
 
-		Log.d("Mylog", "originalUrl="+originalUrl+"## destintionUrl="+destintionUrl);
-		
 		MoveMethod moveMethod = new MoveMethod(originalUrl, destintionUrl, true);
 		try {
 			Client.executeMethod(moveMethod);

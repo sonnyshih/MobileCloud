@@ -12,32 +12,41 @@ import android.graphics.BitmapFactory;
 import android.util.Base64;
 
 public class StringUtil {
-	public static String encodeURL(String value)
-			throws UnsupportedEncodingException {
+	
+	public static String encodeURL(String value) {
 		if (!isEmpty(value)) {
-			return URLEncoder.encode(value, "UTF-8");
+			try {
+				value = URLEncoder.encode(value, "UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
 		}
-		return "";
+		return value;
 	}
 
-	public static String decodeURL(String value)
-			throws UnsupportedEncodingException {
+	public static String decodeURL(String value) {
 		if (!isEmpty(value)) {
-			return URLDecoder.decode(value, "UTF-8");
+			try {
+				value = URLDecoder.decode(value, "UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
 		}
-		return "";
+		return value;
 	}
 
-	public static String pathEncodeURL(String value)
-			throws UnsupportedEncodingException {
+	public static String pathEncodeURL(String value){
 		if (!isEmpty(value)) {
-			value = URLEncoder.encode(value,"UTF-8");
-			value = value.replace("+", "%20");	// replace %20 with +
-			value = value.replace("%2F", "/");	// replace / with %2F
-			return value;
+			try {
+				value = URLEncoder.encode(value,"UTF-8");
+				value = value.replace("+", "%20");	// replace + with %20 
+				value = value.replace("%2F", "/");	// replace %2F with	/ 
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
 		}
-		return "";
 
+		return value;
 	}
 	
 	public static String encodeBase64(String value) {
@@ -142,25 +151,4 @@ public class StringUtil {
 		return result;
 	}
 
-	public static String getURLEncodeStr(String url) {
-		try {
-			url = URLEncoder.encode(url, "utf-8");
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-		}
-		return url;
-	}
-
-	public static String getWebDavURLEncodeStr(String url){
-		
-		try {
-			url = URLEncoder.encode(url,"UTF-8");
-			url = url.replace("+", "%20");	// replace + with %20 
-			url = url.replace("%2F", "/");	// replace %2F with	/ 
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
-
-		return url;
-	}
 }

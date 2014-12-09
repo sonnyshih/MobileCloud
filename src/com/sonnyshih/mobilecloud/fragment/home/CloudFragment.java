@@ -1,7 +1,5 @@
 package com.sonnyshih.mobilecloud.fragment.home;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -251,7 +249,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 			public void run() {
 
 				// Translate the path string to UTF-8 string.
-				String utf8Path = StringUtil.getWebDavURLEncodeStr(path);
+				String utf8Path = StringUtil.pathEncodeURL(path);
 
 				MultiStatusResponse[] multiStatusResponses = webDavManager
 						.getFileList(utf8Path);
@@ -366,12 +364,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		String fileUrl = multiStatusResponse.getHref();
 		webDavItemEntity.setUrl(fileUrl);
 		
-		String fileUrlTemp = fileUrl;
-		try {
-			fileUrlTemp = java.net.URLDecoder.decode(fileUrlTemp, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}// End try
+		String fileUrlTemp = StringUtil.decodeURL(fileUrl) ;
 
 		String name = "";
 		davProperty = davPropertySet.get(DavPropertyName.DISPLAYNAME);
@@ -410,11 +403,15 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		String hostPort = ApplicationManager.getInstance().getDrivePort();
 		// Video_URL_Tmp =
 		// "http://admin:admin@192.168.1.1:8081/SD/Aximcom-sonny.mp4";
+		
+		String encodePath = "";
+		String encodeName = "";
+		encodePath = StringUtil.pathEncodeURL(currentPath);
+		encodeName = StringUtil.encodeURL(name);
 		playUrl = "http://" + username + ":" + password + "@" + hostName + ":"
-				+ hostPort + "/" + currentPath + "/" + name;
+				+ hostPort + encodePath + "/" + encodeName;
 		webDavItemEntity.setPlayUrl(playUrl);
-		// Log.d("Mylog", "play url = " + playUrl);
-
+		
 		return webDavItemEntity;
 	}
 
@@ -487,28 +484,22 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 				String folderNameTmp = folderName;
 				String currentPathTmp = currentPath;
+				folderNameTmp = StringUtil.encodeURL(folderNameTmp);
 				
-				try {
-					folderNameTmp = URLEncoder.encode(folderNameTmp,"UTF-8");
-					folderNameTmp = folderNameTmp.replace("+", "%20");	// replace %20 with +
-					
-					currentPathTmp = StringUtil.pathEncodeURL(currentPathTmp);
-					
-					if (StringUtil.isEmpty(currentPath) ) {
-						path = "http://" + hostName + ":" + hostPort + "/"
-								+ folderNameTmp;
-					} else {
-						path = "http://" + hostName + ":" + hostPort
-								+ currentPathTmp + "/" + folderNameTmp;
-					}
-					
-					WebDavManager.getInstance().createNewFolder(path);
-					showFileList(currentPath);
 
-				} catch (UnsupportedEncodingException e) {
-					e.printStackTrace();
+				currentPathTmp = StringUtil.pathEncodeURL(currentPathTmp);
+				
+				if (StringUtil.isEmpty(currentPath) ) {
+					path = "http://" + hostName + ":" + hostPort + "/"
+							+ folderNameTmp;
+				} else {
+					path = "http://" + hostName + ":" + hostPort
+							+ currentPathTmp + "/" + folderNameTmp;
 				}
 				
+				WebDavManager.getInstance().createNewFolder(path);
+				showFileList(currentPath);
+
 			}
 		}).start();
 		
@@ -855,9 +846,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		default:
 			break;
 		}
-
-//		Log.d("Mylog", "parentPath=" + parentPath);
-//		Log.d("Mylog", "currentPath=" + currentPath);
 
 	}
 

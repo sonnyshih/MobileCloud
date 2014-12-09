@@ -275,7 +275,12 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 	private void dismissUploadFileProgressDialog(){
 		
 		isStopUpload = true;
-		WebDavManager.getInstance().stopUploadFile();
+		
+		// Abort uploading files.
+		if (WebDavManager.getInstance().getPutMethod() != null) {
+			WebDavManager.getInstance().getPutMethod().abort();
+			WebDavManager.getInstance().setPutMethod(null);
+		}
 		
 		localFileListAdapter.cleanAllSelected();
 		if (actionMode != null) {

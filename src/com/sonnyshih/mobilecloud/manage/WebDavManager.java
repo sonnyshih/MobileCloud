@@ -35,11 +35,14 @@ public class WebDavManager {
 	private static WebDavManager instance;
 	
 	private static HttpClient Client;
+	private PutMethod putMethod;
+	private CopyMethod copyMethod;
+	private MoveMethod moveMethod;
+	private DeleteMethod deleteMethod;
 	private String host;
 	private String port;
 	private String username;
 	private String password;
-	private boolean isUploading = false;
 	
 	public WebDavManager(){
 	}
@@ -49,6 +52,38 @@ public class WebDavManager {
 			instance = new WebDavManager();
 		}
 		return instance;
+	}
+
+	public PutMethod getPutMethod() {
+		return putMethod;
+	}
+
+	public void setPutMethod(PutMethod putMethod) {
+		this.putMethod = putMethod;
+	}
+
+	public CopyMethod getCopyMethod() {
+		return copyMethod;
+	}
+
+	public void setCopyMethod(CopyMethod copyMethod) {
+		this.copyMethod = copyMethod;
+	}
+
+	public MoveMethod getMoveMethod() {
+		return moveMethod;
+	}
+
+	public void setMoveMethod(MoveMethod moveMethod) {
+		this.moveMethod = moveMethod;
+	}
+
+	public DeleteMethod getDeleteMethod() {
+		return deleteMethod;
+	}
+
+	public void setDeleteMethod(DeleteMethod deleteMethod) {
+		this.deleteMethod = deleteMethod;
 	}
 
 	public String getHost() {
@@ -152,8 +187,6 @@ public class WebDavManager {
 			boolean isFileExist, String fileName, String uploadPath,
 			String fileLocalPath) {
 
-		isUploading = true;
-
 		String path = "";
 		if (isFileExist) {
 			path = uploadPath + "/Copy_" + fileName;
@@ -172,19 +205,14 @@ public class WebDavManager {
 		FileRequestEntity entity = new FileRequestEntity(file,
 				getContentType(file));
 		
-		final PutMethod putMethod = new PutMethod(url);
+		putMethod = new PutMethod(url);
 
 		UploadRequestEntity requestEntity = new UploadRequestEntity(
 				entity, new ProgressListener() {
 
 					@Override
 					public void transferred(long num) {
-						if (isUploading) {
-							uploadHandler.getProgress((int) num);
-						} else {
-							putMethod.abort();
-						}
-						
+						uploadHandler.getProgress((int) num);
 					}
 				});
 		
@@ -200,10 +228,7 @@ public class WebDavManager {
 			e.printStackTrace();
 		}
 
-	}
-	
-	public void stopUploadFile(){
-		isUploading = false;
+		putMethod = null;
 	}
 	
 	public String getContentType(File f) {
@@ -223,7 +248,8 @@ public class WebDavManager {
 		String destintionUrl;
 		destintionUrl = "http://" + host + ":" + port + path;
 		
-		CopyMethod copyMethod = new CopyMethod(originalUrl, destintionUrl, false);
+		copyMethod = new CopyMethod(originalUrl, destintionUrl, false);
+		
 		try {
 			Client.executeMethod(copyMethod);
 		} catch (HttpException e) {
@@ -231,6 +257,8 @@ public class WebDavManager {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		copyMethod = null;
 	}
 	
 	
@@ -243,7 +271,8 @@ public class WebDavManager {
 		String destintionUrl;
 		destintionUrl = "http://" + host + ":" + port + path;
 
-		MoveMethod moveMethod = new MoveMethod(originalUrl, destintionUrl, true);
+		moveMethod = new MoveMethod(originalUrl, destintionUrl, true);
+		
 		try {
 			Client.executeMethod(moveMethod);
 		} catch (HttpException e) {
@@ -251,20 +280,24 @@ public class WebDavManager {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		moveMethod = null;
 	}
 	
 	// delete webdav file.
 	public void deleteWebDavItem(String path){
-        DeleteMethod delete = new DeleteMethod(path);
+        deleteMethod = new DeleteMethod(path);
         
         try {
-        	Client.executeMethod(delete);
+        	Client.executeMethod(deleteMethod);
         	
 		} catch (HttpException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+        
+        deleteMethod = null;
 
 	}
 	

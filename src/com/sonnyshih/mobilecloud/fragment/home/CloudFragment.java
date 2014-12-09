@@ -26,6 +26,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.ActionMode;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -399,8 +400,8 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		String playUrl; // URL with the Username and Password for Player
 		String username = ApplicationManager.getInstance().getWebDavUsername();
 		String password = ApplicationManager.getInstance().getWebDavPassword();
-		String hostName = ApplicationManager.getInstance().getDriveIp();
-		String hostPort = ApplicationManager.getInstance().getDrivePort();
+		String host = ApplicationManager.getInstance().getDriveIp();
+		String port = ApplicationManager.getInstance().getDrivePort();
 		// Video_URL_Tmp =
 		// "http://admin:admin@192.168.1.1:8081/SD/Aximcom-sonny.mp4";
 		
@@ -408,8 +409,8 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		String encodeName = "";
 		encodePath = StringUtil.pathEncodeURL(currentPath);
 		encodeName = StringUtil.encodeURL(name);
-		playUrl = "http://" + username + ":" + password + "@" + hostName + ":"
-				+ hostPort + encodePath + "/" + encodeName;
+		playUrl = "http://" + username + ":" + password + "@" + host + ":"
+				+ port + encodePath + "/" + encodeName;
 		webDavItemEntity.setPlayUrl(playUrl);
 		
 		return webDavItemEntity;
@@ -479,8 +480,8 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 			@Override
 			public void run() {
 				String path = "";
-				String hostName = ApplicationManager.getInstance().getDriveIp();
-				String hostPort = ApplicationManager.getInstance().getDrivePort();
+				String host = ApplicationManager.getInstance().getDriveIp();
+				String port = ApplicationManager.getInstance().getDrivePort();
 
 				String folderNameTmp = folderName;
 				String currentPathTmp = currentPath;
@@ -490,10 +491,10 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 				currentPathTmp = StringUtil.pathEncodeURL(currentPathTmp);
 				
 				if (StringUtil.isEmpty(currentPath) ) {
-					path = "http://" + hostName + ":" + hostPort + "/"
+					path = "http://" + host + ":" + port + "/"
 							+ folderNameTmp;
 				} else {
-					path = "http://" + hostName + ":" + hostPort
+					path = "http://" + host + ":" + port
 							+ currentPathTmp + "/" + folderNameTmp;
 				}
 				
@@ -509,7 +510,36 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	}
 	
 	
+	private boolean isHaveSameFolderPath(ArrayList<WebDavItemEntity> webDavItemEntities, String currentPath){
+		boolean isSame = false;
+		
+		String host = ApplicationManager.getInstance().getDriveIp();
+		String port = ApplicationManager.getInstance().getDrivePort();
+
+		String path = "http://" + host + ":" + port + currentPath;
+		
+		for (WebDavItemEntity webDavItemEntity : webDavItemEntities) {
+			String decodeUrl = StringUtil.decodeURL(webDavItemEntity.getUrl());
+			
+			if (path.equals(decodeUrl)) {
+				isSame = true;
+			}
+
+		}
+		
+		return isSame;
+	}
+	
 	private void copyWebDaveItem(final ArrayList<WebDavItemEntity> copyWebDavItemEntities){
+
+		// Can not copy self folder into self folder.
+		boolean isHaveSameFolderPath = isHaveSameFolderPath(copyWebDavItemEntities, currentPath);
+		if (isHaveSameFolderPath) {
+			isStopCopy = true;
+			Toast.makeText(getActivity().getApplicationContext(),
+					"Can not copy self folder into self folder...", Toast.LENGTH_LONG).show();
+			return;
+		}
 		
 		showHandleWebDavItemProgressDialog("Coping files...");
 		currentNumber = 0;
@@ -523,7 +553,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 			public void run() {
 				
 				handleProgressBar.setProgress(0);
-				
+
 				for (WebDavItemEntity copyWebDavItemEntity : copyWebDavItemEntities) {
 					
 					// Stop copy 
@@ -583,6 +613,16 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	
 	
 	private void moveWebDaveItem(final ArrayList<WebDavItemEntity> moveWebDavItemEntities){
+		
+		// Can not move self folder into self folder.
+		boolean isHaveSameFolderPath = isHaveSameFolderPath(moveWebDavItemEntities, currentPath);
+		if (isHaveSameFolderPath) {
+			isStopMove = true;
+			Toast.makeText(getActivity().getApplicationContext(),
+					"Can not move self folder into self folder...", Toast.LENGTH_LONG).show();
+			return;
+		}
+
 		
 		showHandleWebDavItemProgressDialog("Moving files...");
 		currentNumber = 0;
@@ -748,11 +788,30 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	}
 
 	private void dismissHandleWebDavItemProgressDialog(){
-		isStopCopy = true;
-		isStopMove = true;
-		isStopDelete = true;
 		
 		cloudFileListAdapter.cleanAllSelected();
+
+		isStopCopy = true;
+		// Abort coping files.
+		if (WebDavManager.getInstance().getCopyMethod() != null) {
+			WebDavManager.getInstance().getCopyMethod().abort();
+			WebDavManager.getInstance().setCopyMethod(null);
+		}
+		
+		isStopMove = true;
+		// Abort moving files.
+		if (WebDavManager.getInstance().getMoveMethod() !=null) {
+			WebDavManager.getInstance().getMoveMethod().abort();
+			WebDavManager.getInstance().setMoveMethod(null);
+		}
+		
+		isStopDelete = true;
+		// Abort deleting files.
+		if (WebDavManager.getInstance().getDeleteMethod() != null) {
+			WebDavManager.getInstance().getDeleteMethod().abort();
+			WebDavManager.getInstance().setDeleteMethod(null);
+		}
+		
 		if (actionMode != null) {
 			actionMode.finish();
 		}
@@ -760,6 +819,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		if (handleFileProgressAlertDialog.isShowing()) {
 			handleFileProgressAlertDialog.dismiss();
 		}
+		
 		showFileList(currentPath);
 	}
 	

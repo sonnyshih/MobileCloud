@@ -35,8 +35,14 @@
         
         
         <activity
-            android:name="com.sonnyshih.mobilecloud.activity.localfile.LocalFileListActivity"
+            android:name="com.sonnyshih.mobilecloud.activity.uploadfile.UploadFileActivity"
             android:configChanges="orientation|keyboardHidden|navigation|screenSize"/>
+        
+        
+        <activity
+            android:name=".activity.player.AudioPlayerActivity"
+            android:configChanges="orientation|keyboardHidden|navigation|screenSize" 
+            android:theme="@style/com.sonnyshih.mobilecloud.AppTheme.FullScreen" />
         
         <!-- 
         <activity

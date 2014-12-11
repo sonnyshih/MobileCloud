@@ -11,7 +11,8 @@ import org.apache.jackrabbit.webdav.property.DavPropertySet;
 
 import com.sonnyshih.mobilecloud.R;
 import com.sonnyshih.mobilecloud.activity.home.MainActivity;
-import com.sonnyshih.mobilecloud.activity.localfile.LocalFileListActivity;
+import com.sonnyshih.mobilecloud.activity.player.AudioPlayerActivity;
+import com.sonnyshih.mobilecloud.activity.uploadfile.UploadFileActivity;
 import com.sonnyshih.mobilecloud.base.BaseFragment;
 import com.sonnyshih.mobilecloud.entity.FileType;
 import com.sonnyshih.mobilecloud.entity.ItemType;
@@ -52,6 +53,8 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 	public static String BUNDLE_STRING_CURRENT_PATH = "BUNDLE_STRING_CURRENT_PATH";
 	public static String BUNDLE_ARRAYLIST_WEBDAV_ITEM_ENTITIES = "BUNDLE_ARRAYLIST_WEBDAV_ITEM_ENTITIES";
+	public static String BUNDLE_ARRAYLIST_AUDIO_WEBDAV_ITEM_ENTITIES = "BUNDLE_ARRAYLIST_AUDIO_WEBDAV_ITEM_ENTITIES";
+	public static String BUNDLE_INT_FILE_POSITION = "BUNDLE_INT_FILE_POSITION";
 	
 	private String parentPath = "";
 	private String currentPath = "";
@@ -180,7 +183,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		case R.id.cloudMenu_upload:
 			Intent intent = new Intent();
 			intent.setClass(getActivity().getApplicationContext(),
-					LocalFileListActivity.class);
+					UploadFileActivity.class);
 			
 			Bundle bundle = new Bundle();
 			bundle.putString(BUNDLE_STRING_CURRENT_PATH, currentPath);
@@ -342,6 +345,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		// Get type
 		if (contentType.equals("httpd/unix-directory")) {
 			webDavItemEntity.setItemType(ItemType.Folder);
+			webDavItemEntity.setFileType(FileType.Folder);
 		} else {
 			webDavItemEntity.setItemType(ItemType.File);
 		}// End if
@@ -639,7 +643,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 				
 				for (WebDavItemEntity moveWebDavItemEntity : moveWebDavItemEntities) {
 					
-					// Stop delete 
+					// Stop Move 
 					if (isStopMove) {
 						return;
 					}
@@ -657,17 +661,9 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 					handleProgressBar.setProgress(currentNumber);
 					
-					String destinationName = webDavItemName;
-
-					for (WebDavItemEntity webDavItemEntity : webDavItemEntities) {
-						if (webDavItemName.equals(webDavItemEntity.getName())) {
-							destinationName = "move_" + webDavItemName;
-						}
-					}
-					
 					WebDavManager.getInstance().moveWebDavItem(
 							moveWebDavItemEntity.getUrl(), currentPath,
-							destinationName);
+							webDavItemName);
 					
 					try {
 						Thread.sleep(500);
@@ -881,6 +877,81 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		}
 	}
 	
+	private void playFile(int position){
+		FileType fileType = webDavItemEntities.get(position).getFileType();
+		String name = webDavItemEntities.get(position).getName();
+		
+		int filePosition = 0;
+		ArrayList<WebDavItemEntity> audioWebDavItemEntities = new ArrayList<WebDavItemEntity>();
+		ArrayList<WebDavItemEntity> videoWebDavItemEntities = new ArrayList<WebDavItemEntity>();
+		ArrayList<WebDavItemEntity> imageWebDavItemEntities = new ArrayList<WebDavItemEntity>();
+		
+		// Arrange the play list by using fileType
+		for (WebDavItemEntity webDavItemEntity : webDavItemEntities) {
+			switch (webDavItemEntity.getFileType()) {
+			case Audio:
+				
+				audioWebDavItemEntities.add(webDavItemEntity);
+				if (name.equals(webDavItemEntity.getName())) {
+					filePosition = audioWebDavItemEntities.size() - 1;
+				}
+				break;
+
+			case Video:
+				videoWebDavItemEntities.add(webDavItemEntity);
+				if (name.equals(webDavItemEntity.getName())) {
+					filePosition = videoWebDavItemEntities.size() - 1;
+				}
+				break;
+
+			case Image:
+				imageWebDavItemEntities.add(webDavItemEntity);
+				if (name.equals(webDavItemEntity.getName())) {
+					filePosition = imageWebDavItemEntities.size() - 1;
+				}
+				break;
+
+			default:
+				break;
+			}
+			
+		}
+		
+		switch (fileType) {
+		case Audio:
+			Log.d("Mylog", "name = "+name);
+			Log.d("Mylog", "audioWebDavItemEntities="+audioWebDavItemEntities.get(filePosition).getName());
+			
+			Intent intent = new Intent();
+			intent.setClass(getActivity().getApplicationContext(),
+					AudioPlayerActivity.class);
+			
+			Bundle bundle = new Bundle();
+			bundle.putInt(BUNDLE_INT_FILE_POSITION, filePosition);
+			bundle.putSerializable(BUNDLE_ARRAYLIST_AUDIO_WEBDAV_ITEM_ENTITIES, audioWebDavItemEntities);  
+			intent.putExtras(bundle);
+			
+			startActivity(intent);
+
+			
+			break;
+
+		case Video:
+			Log.d("Mylog", "name = "+name);
+			Log.d("Mylog", "videoWebDavItemEntities="+videoWebDavItemEntities.get(filePosition).getName());
+			break;
+
+		case Image:
+			Log.d("Mylog", "name = "+name);
+			Log.d("Mylog", "imageWebDavItemEntities="+imageWebDavItemEntities.get(filePosition).getName());
+			break;
+
+		default:
+			break;
+		}
+
+	}
+	
 	
 	@Override
 	public void onItemClick(AdapterView<?> parent, View view, int position,
@@ -899,7 +970,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 			break;
 
 		case File:
-
+			playFile(position);
 			
 			break;
 

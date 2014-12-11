@@ -1,4 +1,4 @@
-package com.sonnyshih.mobilecloud.activity.localfile;
+package com.sonnyshih.mobilecloud.activity.uploadfile;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -36,7 +36,7 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-public class LocalFileListActivity extends BaseFragmentActivity implements
+public class UploadFileActivity extends BaseFragmentActivity implements
 		OnClickListener, OnItemClickListener, MultiChoiceModeListener, UploadHandler {
 	
 	private boolean isStopUpload = true;
@@ -67,7 +67,7 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 	protected void onStart() {
 		super.onStart();
 		
-		Intent intent = this.getIntent();
+		Intent intent = getIntent();
 		Bundle bundle = intent.getExtras();
 		currentPath = bundle.getString(CloudFragment.BUNDLE_STRING_CURRENT_PATH);
 		webDavItemEntities = (ArrayList<WebDavItemEntity>) bundle
@@ -201,7 +201,7 @@ public class LocalFileListActivity extends BaseFragmentActivity implements
 					boolean isExsitOnWebDav = isExsitOnWebDav(fileName);
 					
 					WebDavManager.getInstance().uploadFile(
-							LocalFileListActivity.this, isExsitOnWebDav, fileName,
+							UploadFileActivity.this, isExsitOnWebDav, fileName,
 							uploadPath, fileLocalPath);
 
 				}

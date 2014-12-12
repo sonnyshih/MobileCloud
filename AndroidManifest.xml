@@ -44,6 +44,8 @@
             android:configChanges="orientation|keyboardHidden|navigation|screenSize" 
             android:theme="@style/com.sonnyshih.mobilecloud.AppTheme.FullScreen" />
         
+        <service android:name=".activity.player.AudioPlayerService"></service>
+        
         <!-- 
         <activity
             android:name=".activity.home.MainActivity"

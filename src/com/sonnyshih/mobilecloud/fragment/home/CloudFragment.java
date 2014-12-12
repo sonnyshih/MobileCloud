@@ -12,6 +12,7 @@ import org.apache.jackrabbit.webdav.property.DavPropertySet;
 import com.sonnyshih.mobilecloud.R;
 import com.sonnyshih.mobilecloud.activity.home.MainActivity;
 import com.sonnyshih.mobilecloud.activity.player.AudioPlayerActivity;
+import com.sonnyshih.mobilecloud.activity.player.AudioPlayerService;
 import com.sonnyshih.mobilecloud.activity.uploadfile.UploadFileActivity;
 import com.sonnyshih.mobilecloud.base.BaseFragment;
 import com.sonnyshih.mobilecloud.entity.FileType;
@@ -23,7 +24,10 @@ import com.sonnyshih.mobilecloud.ui.adapter.CloudFileListAdapter;
 import com.sonnyshih.mobilecloud.util.FileUtil;
 import com.sonnyshih.mobilecloud.util.StringUtil;
 
+import android.app.ActivityManager;
 import android.app.AlertDialog;
+import android.app.ActivityManager.RunningServiceInfo;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
@@ -93,6 +97,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	private TextView currentNumberTextView;
 	private TextView totalTextView;
 
+	private String audioPlayerClassName = AudioPlayerService.class.getName();
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -174,18 +179,32 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
+		Intent intent = new Intent();
+		Bundle bundle = new Bundle();
+		
 		switch (item.getItemId()) {
+		case R.id.cloudMenu_playMusic:
+		
+			intent.setClass(getActivity().getApplicationContext(),
+					AudioPlayerActivity.class);
+		
+			bundle.putInt(BUNDLE_INT_FILE_POSITION, 0);
+			bundle.putSerializable(BUNDLE_ARRAYLIST_AUDIO_WEBDAV_ITEM_ENTITIES,	null);
+			intent.putExtras(bundle);
+
+			startActivity(intent);
+
+			return true;
+		
 		case R.id.cloudMenu_createFolder:
 			showCreateFolderAlertDialog();
 
 			return true;
 
 		case R.id.cloudMenu_upload:
-			Intent intent = new Intent();
 			intent.setClass(getActivity().getApplicationContext(),
 					UploadFileActivity.class);
 			
-			Bundle bundle = new Bundle();
 			bundle.putString(BUNDLE_STRING_CURRENT_PATH, currentPath);
 			bundle.putSerializable(BUNDLE_ARRAYLIST_WEBDAV_ITEM_ENTITIES, webDavItemEntities);  
 			intent.putExtras(bundle);
@@ -426,6 +445,20 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 			public void run() {
 				for (int i = 0; i < menu.size(); i++) {
 					menu.getItem(i).setVisible(flag);
+
+					String title = menu.getItem(i).getTitle().toString();
+					if (title.equals(getResources().getString(
+							R.string.cloudMenu_playingMusic))) {
+
+						if (isServiceRunning(audioPlayerClassName)) {
+							menu.getItem(i).setVisible(true);
+						} else {
+							menu.getItem(i).setVisible(false);
+						}
+
+					}					
+
+					
 				}
 
 			}
@@ -513,7 +546,17 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		
 	}
 	
-	
+	public boolean isServiceRunning(String className) {
+		ActivityManager manager = (ActivityManager) getActivity().getSystemService(Context.ACTIVITY_SERVICE);
+		for (RunningServiceInfo service : manager
+				.getRunningServices(Integer.MAX_VALUE)) {
+			if (className.equals(service.service.getClassName())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private boolean isHaveSameFolderPath(ArrayList<WebDavItemEntity> webDavItemEntities, String currentPath){
 		boolean isSame = false;
 		

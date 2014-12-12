@@ -1,15 +1,21 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android" >
 
     <item
+        android:id="@+id/cloudMenu_playMusic"
+        android:icon="@drawable/ic_music"
+        android:showAsAction="always"
+        android:title="@string/cloudMenu_playingMusic"/>
+    
+    <item
         android:id="@+id/cloudMenu_createFolder"
         android:icon="@drawable/ic_create_folder"
-        android:showAsAction="ifRoom"
-        android:title="Create Folder"/>
+        android:showAsAction="always"
+        android:title="@string/cloudMenu_createFolder"/>
     
     <item
         android:id="@+id/cloudMenu_upload"
         android:icon="@drawable/ic_add"
         android:showAsAction="always"
-        android:title="Upload"/>
+        android:title="@string/cloudMenu_upload"/>
     
 </menu>

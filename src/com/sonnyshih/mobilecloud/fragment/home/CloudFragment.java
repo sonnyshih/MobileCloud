@@ -431,7 +431,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		String encodePath = "";
 		String encodeName = "";
 		encodePath = StringUtil.pathEncodeURL(currentPath);
-		encodeName = StringUtil.encodeURL(name);
+		encodeName = StringUtil.pathEncodeURL(name);
 		playUrl = "http://" + username + ":" + password + "@" + host + ":"
 				+ port + encodePath + "/" + encodeName;
 		webDavItemEntity.setPlayUrl(playUrl);
@@ -522,9 +522,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 				String folderNameTmp = folderName;
 				String currentPathTmp = currentPath;
-				folderNameTmp = StringUtil.encodeURL(folderNameTmp);
-				
-
+				folderNameTmp = StringUtil.pathEncodeURL(folderNameTmp);
 				currentPathTmp = StringUtil.pathEncodeURL(currentPathTmp);
 				
 				if (StringUtil.isEmpty(currentPath) ) {
@@ -962,8 +960,8 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		
 		switch (fileType) {
 		case Audio:
-			Log.d("Mylog", "name = "+name);
-			Log.d("Mylog", "audioWebDavItemEntities="+audioWebDavItemEntities.get(filePosition).getName());
+//			Log.d("Mylog", "name = "+name);
+//			Log.d("Mylog", "audioWebDavItemEntities="+audioWebDavItemEntities.get(filePosition).getName());
 			
 			Intent intent = new Intent();
 			intent.setClass(getActivity().getApplicationContext(),

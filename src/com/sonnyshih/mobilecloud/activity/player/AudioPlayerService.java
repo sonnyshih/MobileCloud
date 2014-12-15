@@ -2,18 +2,25 @@ package com.sonnyshih.mobilecloud.activity.player;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 
+import com.sonnyshih.mobilecloud.R;
 import com.sonnyshih.mobilecloud.entity.WebDavItemEntity;
+import com.sonnyshih.mobilecloud.util.StringUtil;
 
 import android.app.Service;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.AudioManager;
+import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnBufferingUpdateListener;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnErrorListener;
 import android.os.Binder;
 import android.os.IBinder;
+import android.util.Log;
 
 public class AudioPlayerService extends Service implements
 		OnCompletionListener, OnErrorListener, OnBufferingUpdateListener {
@@ -22,6 +29,10 @@ public class AudioPlayerService extends Service implements
 	private ArrayList<WebDavItemEntity> webDavItemEntities;
 	private int filePosition;
 	private int percent = 0;
+	private boolean isGetMetaData = false;
+	private String albumName = "";
+	private String name = "";
+	private Bitmap albumArtBitmap = null;
 	
 	@Override
 	public void onDestroy() {
@@ -36,6 +47,7 @@ public class AudioPlayerService extends Service implements
 	
 	
 	public void startMediaPlayer(String playUrl){
+		getMedaData(playUrl);
 		
 		try {
 			releaseMediaPlayer();
@@ -57,6 +69,7 @@ public class AudioPlayerService extends Service implements
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
 		
 	}	
 
@@ -133,6 +146,63 @@ public class AudioPlayerService extends Service implements
 		return percent;
 	}
 
+	public boolean isGetMetaData() {
+		return isGetMetaData;
+	}
+
+	public Bitmap getAlbumArtBitmap() {
+		return albumArtBitmap;
+	}
+
+	public String getAlbumName() {
+		return albumName;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	private void getMedaData(final String url) {
+		isGetMetaData = false;
+		
+		new Thread (new Runnable() {
+			
+			public void run() {
+				MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
+				HashMap<String, String> headersMap = new HashMap<String, String>();
+				mediaMetadataRetriever.setDataSource(url, headersMap);
+
+				albumName = mediaMetadataRetriever
+						.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM);
+				
+				if (StringUtil.isEmpty(albumName)) {
+					albumName = "N.A";
+				}
+
+				name = mediaMetadataRetriever
+						.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
+				
+				if (StringUtil.isEmpty(name)) {
+					name = webDavItemEntities.get(filePosition).getName();
+				}
+				
+				
+				byte[] embeddedPicture = mediaMetadataRetriever.getEmbeddedPicture();
+				albumArtBitmap = BitmapFactory.decodeResource(getResources(),
+						R.drawable.ic_album);
+				
+				if (embeddedPicture != null) {
+					albumArtBitmap = BitmapFactory.decodeByteArray(
+							embeddedPicture, 0, embeddedPicture.length);
+				}
+				
+	        	 isGetMetaData = true;
+	        	 
+
+			}
+		}).start();
+	}//end getAlbumName
+	
 	class ServiceBinder extends Binder {
 		
 		public AudioPlayerService getService () {

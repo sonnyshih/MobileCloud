@@ -14,9 +14,12 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
@@ -36,6 +39,11 @@ public class AudioPlayerActivity extends BaseFragmentActivity implements
 	private ImageView pauseImageView;
 	private ImageView playImageView;
 	private ImageView nextImageView;
+	
+	private RelativeLayout audioPlayerLayout;
+	private TextView nameTextView;
+	private TextView albumNameTextView;
+	private ImageView albumImageView;
 	private SeekBar seekBar;
 	private TextView collapsedTextView;
 	private TextView durationTextView;
@@ -53,12 +61,30 @@ public class AudioPlayerActivity extends BaseFragmentActivity implements
 		filePosition = bundle.getInt(CloudFragment.BUNDLE_INT_FILE_POSITION);
 		webDavItemEntities = (ArrayList<WebDavItemEntity>) bundle
 				.getSerializable(CloudFragment.BUNDLE_ARRAYLIST_AUDIO_WEBDAV_ITEM_ENTITIES);
-		
+	
+		showProgressDialog("","Loading...");
 		init();
-		startAudioPlayerService();
+	}
+
+	@Override
+	public void onResume() {
+		super.onResume();
+		
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				startAudioPlayerService();
+			}
+		}).start();
 	}
 
 	private void init(){
+		
+		audioPlayerLayout = (RelativeLayout) findViewById(R.id.audioPlayer_audioPlayerLayout);
+		
+		albumImageView = (ImageView) findViewById(R.id.audioPlayer_albumImageView);
+		albumNameTextView = (TextView) findViewById(R.id.audioPlayer_albumNameTextView);
+		nameTextView = (TextView) findViewById(R.id.audioPlayer_nameTextView);
 		
 		seekBar = (SeekBar) findViewById(R.id.audioPlayer_seekBar);
 		seekBar.setProgress(0);
@@ -148,13 +174,44 @@ public class AudioPlayerActivity extends BaseFragmentActivity implements
 				}
 
 				break;
-
+				
+			case 2:
+				albumNameTextView.setText(audioPlayerService.getAlbumName());
+				nameTextView.setText(audioPlayerService.getName());
+				
+				if (isThreadEnable) {
+					if (audioPlayerService.getAlbumArtBitmap() != null) {
+						albumImageView.setImageBitmap(audioPlayerService.getAlbumArtBitmap());
+					}
+				}
+				
+				audioPlayerLayout.setVisibility(View.VISIBLE);
+				dismissProgressDialog();
+				break;
+				
 			default:
 				break;
 			}
 		}
 		
 	};
+	
+	private void changeMetaData(){
+		new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				while (!audioPlayerService.isGetMetaData()) {
+					
+				}
+				
+				Message message = new Message();
+				message.what = 2;
+				uiHandler.sendMessage(message);
+				
+			}
+		}).start();
+	}
 	
 	public boolean isServiceRunning(String className) {
 		ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
@@ -186,12 +243,16 @@ public class AudioPlayerActivity extends BaseFragmentActivity implements
 			
 		}
 
+		nameTextView.setText(webDavItemEntities.get(filePosition).getName());
+		
 		MediaPlayer mediaPlayer = audioPlayerService.getMediaPlayer();
 		
 		isThreadEnable = true;
 		seekBar.setMax(mediaPlayer.getDuration());
 		uiThread.start();
 
+		changeMetaData();		
+		
 	}
 
 	@Override
@@ -205,6 +266,7 @@ public class AudioPlayerActivity extends BaseFragmentActivity implements
 		switch (view.getId()) {
 		case R.id.audioPlayer_previousImageView:
 			audioPlayerService.previousAudio();
+			changeMetaData();
 			break;
 
 		case R.id.audioPlayer_pauseImageView:
@@ -217,6 +279,7 @@ public class AudioPlayerActivity extends BaseFragmentActivity implements
 
 		case R.id.audioPlayer_nextImageView:
 			audioPlayerService.nextAudio();
+			changeMetaData();
 			break;
 
 		default:

@@ -1,34 +1,36 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/audioPlayer_audioPlayerLayout"
     android:layout_width="fill_parent"
     android:layout_height="match_parent"
-    android:layout_margin="10dp" >
+    android:layout_margin="10dp"
+    android:visibility="gone">
 
     <ImageView
-        android:id="@+id/imageView1"
+        android:id="@+id/audioPlayer_albumImageView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/albumLayout"
+        android:layout_above="@+id/audioPlayer_albumLayout"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:src="@drawable/ic_audio_file" />
+        android:src="@drawable/ic_album" />
 
     <LinearLayout
-        android:id="@+id/albumLayout"
+        android:id="@+id/audioPlayer_albumLayout"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_above="@+id/linearLayout1"
         android:layout_marginBottom="10dp"
-        android:orientation="vertical" >
+        android:orientation="vertical">
 
         <TextView
-            android:id="@+id/textView3"
+            android:id="@+id/audioPlayer_nameTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="xxx.mp3" />
 
         <TextView
-            android:id="@+id/textView4"
+            android:id="@+id/audioPlayer_albumNameTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Album" />

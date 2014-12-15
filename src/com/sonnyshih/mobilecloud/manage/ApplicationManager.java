@@ -1,5 +1,7 @@
 package com.sonnyshih.mobilecloud.manage;
 
+import android.app.ActivityManager;
+import android.app.ActivityManager.RunningServiceInfo;
 import android.content.Context;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -8,22 +10,24 @@ public class ApplicationManager {
 
 	private static ApplicationManager instance;
 	private String localIp;
-	
+
 	private String routerMobileCloudName;
 	private String routerIp;
 	private String routerPort;
 	private String routerMac;
-	
+
 	private String driveMobileCloudName;
 	private String driveIp;
 	private String drivePort;
 	private String driveMac;
-	
-	private String webDavUsername = "admin";	// webDav Username
-	private String webDavPassword = "admin";	// WebDave Password
-	
+
+	private String webDavUsername = "admin"; // webDav Username
+	private String webDavPassword = "admin"; // WebDave Password
+
 	private Context context;
 	private String appVersion;
+
+	private ActivityManager activityManager;
 
 	private ApplicationManager() {
 	}
@@ -33,6 +37,14 @@ public class ApplicationManager {
 			instance = new ApplicationManager();
 		}
 		return instance;
+	}
+
+	public ActivityManager getActivityManager() {
+		return activityManager;
+	}
+
+	public void setActivityManager(ActivityManager activityManager) {
+		this.activityManager = activityManager;
 	}
 
 	public Context getContext() {
@@ -158,16 +170,16 @@ public class ApplicationManager {
 	public String getIpAddress() {
 
 		String ip = "";
-		
+
 		if (isWifiEnable()) {
-			
+
 			WifiManager wifiManager = (WifiManager) context
 					.getSystemService(Context.WIFI_SERVICE);
-			
+
 			WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-			
+
 			int ipAddress = wifiInfo.getIpAddress();
-			
+
 			ip = String.format("%d.%d.%d.%d", (ipAddress & 0xff),
 					(ipAddress >> 8 & 0xff), (ipAddress >> 16 & 0xff),
 					(ipAddress >> 24 & 0xff));
@@ -176,4 +188,13 @@ public class ApplicationManager {
 		return ip;
 	}
 
+	public boolean isServiceRunning(String className) {
+		for (RunningServiceInfo service : activityManager
+				.getRunningServices(Integer.MAX_VALUE)) {
+			if (className.equals(service.service.getClassName())) {
+				return true;
+			}
+		}
+		return false;
+	}
 }

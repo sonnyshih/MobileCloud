@@ -3,7 +3,10 @@ package com.sonnyshih.mobilecloud.base;
 import com.sonnyshih.mobilecloud.R;
 import com.sonnyshih.mobilecloud.manage.ApplicationManager;
 
+import android.app.ActivityManager;
 import android.app.Application;
+import android.app.ActivityManager.RunningServiceInfo;
+import android.content.Context;
 
 public class MobileCloudApp extends Application{
 
@@ -17,6 +20,8 @@ public class MobileCloudApp extends Application{
 		
 		ApplicationManager.getInstance().setContext(this);
 		ApplicationManager.getInstance().setAppVersion(getAppVersion());
+		ApplicationManager.getInstance().setActivityManager(
+				(ActivityManager) getSystemService(Context.ACTIVITY_SERVICE));
 
 	}
 

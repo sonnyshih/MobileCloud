@@ -24,10 +24,7 @@ import com.sonnyshih.mobilecloud.ui.adapter.CloudFileListAdapter;
 import com.sonnyshih.mobilecloud.util.FileUtil;
 import com.sonnyshih.mobilecloud.util.StringUtil;
 
-import android.app.ActivityManager;
 import android.app.AlertDialog;
-import android.app.ActivityManager.RunningServiceInfo;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
@@ -450,7 +447,9 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 					if (title.equals(getResources().getString(
 							R.string.cloudMenu_playingMusic))) {
 
-						if (isServiceRunning(audioPlayerClassName)) {
+						if (ApplicationManager.getInstance().isServiceRunning(
+								audioPlayerClassName)) {
+							
 							menu.getItem(i).setVisible(true);
 						} else {
 							menu.getItem(i).setVisible(false);
@@ -544,17 +543,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		
 	}
 	
-	public boolean isServiceRunning(String className) {
-		ActivityManager manager = (ActivityManager) getActivity().getSystemService(Context.ACTIVITY_SERVICE);
-		for (RunningServiceInfo service : manager
-				.getRunningServices(Integer.MAX_VALUE)) {
-			if (className.equals(service.service.getClassName())) {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	private boolean isHaveSameFolderPath(ArrayList<WebDavItemEntity> webDavItemEntities, String currentPath){
 		boolean isSame = false;
 		

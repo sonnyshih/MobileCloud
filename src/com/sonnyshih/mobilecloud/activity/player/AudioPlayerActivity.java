@@ -3,8 +3,6 @@ package com.sonnyshih.mobilecloud.activity.player;
 import java.util.ArrayList;
 import java.util.Date;
 
-import android.app.ActivityManager;
-import android.app.ActivityManager.RunningServiceInfo;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -14,11 +12,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -27,6 +23,7 @@ import com.sonnyshih.mobilecloud.R;
 import com.sonnyshih.mobilecloud.base.BaseFragmentActivity;
 import com.sonnyshih.mobilecloud.entity.WebDavItemEntity;
 import com.sonnyshih.mobilecloud.fragment.home.CloudFragment;
+import com.sonnyshih.mobilecloud.manage.ApplicationManager;
 
 public class AudioPlayerActivity extends BaseFragmentActivity implements
 		ServiceConnection, OnClickListener {
@@ -110,7 +107,8 @@ public class AudioPlayerActivity extends BaseFragmentActivity implements
 	private void startAudioPlayerService(){
 		Intent intent = new Intent(this, AudioPlayerService.class);
 		
-		if (!isServiceRunning(audioPlayerClassName)) {
+		if (!ApplicationManager.getInstance().isServiceRunning(
+				audioPlayerClassName)) {
 			startService(intent);
 		}
 		
@@ -213,17 +211,6 @@ public class AudioPlayerActivity extends BaseFragmentActivity implements
 		}).start();
 	}
 	
-	public boolean isServiceRunning(String className) {
-		ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-		for (RunningServiceInfo service : manager
-				.getRunningServices(Integer.MAX_VALUE)) {
-			if (className.equals(service.service.getClassName())) {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	@Override
 	public void onServiceConnected(ComponentName name, IBinder service) {
 		audioPlayerService = ((AudioPlayerService.ServiceBinder) service)

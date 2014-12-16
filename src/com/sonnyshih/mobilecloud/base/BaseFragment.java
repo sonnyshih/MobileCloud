@@ -38,6 +38,12 @@ public class BaseFragment extends Fragment{
 		return errorAlertDialog;
 	}
 
+	protected void dismissErrorAlertDialog(){
+		if (errorAlertDialog != null && errorAlertDialog.isShowing()) {
+			errorAlertDialog.dismiss();
+		}
+	}
+	
 	protected void showProgressDialog(String title, String message){
 		
 		if (loadingProgressDialog == null) {

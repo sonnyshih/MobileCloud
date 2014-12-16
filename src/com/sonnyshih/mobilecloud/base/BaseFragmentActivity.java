@@ -54,8 +54,11 @@ public abstract class BaseFragmentActivity extends FragmentActivity{
 		return errorAlertDialog;
 	}
 
-	
-
+	protected void dismissErrorAlertDialog(){
+		if (errorAlertDialog != null && errorAlertDialog.isShowing()) {
+			errorAlertDialog.dismiss();
+		}
+	}	
 	
 	protected void showProgressDialog(String title, String message) {
 

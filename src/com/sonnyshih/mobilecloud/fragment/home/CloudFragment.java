@@ -143,18 +143,28 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	@Override
 	public void onResume() {
 		super.onResume();
+		
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
-				try {
-					Thread.sleep(1000);
-					if (MainActivity.isGetDriveIp) {
-						initWebDav();
-						showFileList(currentPath);
+				boolean isGetDriveIp = MainActivity.isGetDriveIp;
+				int count = 0;
+				while (!isGetDriveIp) {
+					try {
+						if (count>3) {
+//							Log.d("Mylog", "Please check your Mobile Cloud.");
+							break;
+						}
+						Thread.sleep(1000);
+						count++;
+					} catch (InterruptedException e) {
+						e.printStackTrace();
 					}
-				} catch (InterruptedException e) {
-					e.printStackTrace();
 				}
+
+				initWebDav();
+				showFileList(currentPath);
+
 			}
 		}).start();
 
@@ -250,7 +260,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 				
 				String folderName = "";
 				
-				// add the up arrow icon at the first position.
+				// Show the up arrow icon.
 				if (StringUtil.isEmpty(path)) {
 					backArrowLayout.setVisibility(View.GONE);
 					copyAndMoveLayout.setVisibility(View.GONE);
@@ -275,6 +285,25 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 						.getFileList(utf8Path);
 				webDavItemEntities.clear();
 
+				if (multiStatusResponses == null
+						|| (StringUtil.isEmpty(currentPath) && multiStatusResponses.length <= 1)) {
+					
+					getActivity().runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							progressBar.setVisibility(View.GONE);
+							fileListView.setVisibility(View.GONE);
+							showErrorAlertDialog("Please Check your storages.");
+							showMenu(false);
+							currentPath = "";
+							showFileList(currentPath);
+						}
+					});
+					return;
+				} 
+				
+				dismissErrorAlertDialog();
+				
 				ArrayList<WebDavItemEntity> folders = new ArrayList<WebDavItemEntity>();
 				ArrayList<WebDavItemEntity> files = new ArrayList<WebDavItemEntity>();
 
@@ -847,6 +876,25 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		
 		showFileList(currentPath);
 	}
+	
+//	private boolean isDetectStorage = false;
+//	private Thread detectStorage = new Thread(new Runnable() {
+//		
+//		@Override
+//		public void run() {
+//			isDetectStorage = true;
+//			
+//			while (isDetectStorage) {
+////				try {
+////					Thread.sleep(500);
+//					Log.d("Mylog", "DetectStorage");
+//					showFileList(currentPath);
+////				} catch (InterruptedException e) {
+////					e.printStackTrace();
+////				}
+//			}
+//		}
+//	});
 	
 	
 	private void onActionModeCopyClick(){

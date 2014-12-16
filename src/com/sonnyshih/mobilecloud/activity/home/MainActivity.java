@@ -233,7 +233,7 @@ public class MainActivity extends BaseFragmentActivity implements
 
 	@Override
 	public void doErrorExcute(String errorMessage) {
-		
+		handleNoGetBonjourData();
 	}
 	
 }

@@ -222,6 +222,15 @@ public class WebDavManager {
 			Client.executeMethod(putMethod);
 			uploadHandler.getMessage(putMethod.getStatusCode(), putMethod.getStatusText());
 			
+			
+//			Log.d("Mylog", putMethod.getStatusCode() + " : " + putMethod.getStatusText());
+//			Log.d("Mylog", "ResponseBody as String: "+putMethod.getResponseBodyAsString());
+//		
+//			int response = ((HttpMethod) putMethod).getStatusCode();
+//			Log.d("Mylog", "succeed: "+putMethod.succeeded());
+//			Log.d("Mylog", "response code ="+ response);
+
+			
 		} catch (HttpException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

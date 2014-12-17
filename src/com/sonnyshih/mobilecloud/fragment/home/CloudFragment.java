@@ -10,7 +10,6 @@ import org.apache.jackrabbit.webdav.property.DavPropertyName;
 import org.apache.jackrabbit.webdav.property.DavPropertySet;
 
 import com.sonnyshih.mobilecloud.R;
-import com.sonnyshih.mobilecloud.activity.home.MainActivity;
 import com.sonnyshih.mobilecloud.activity.player.AudioPlayerActivity;
 import com.sonnyshih.mobilecloud.activity.player.AudioPlayerService;
 import com.sonnyshih.mobilecloud.activity.uploadfile.UploadFileActivity;
@@ -19,6 +18,8 @@ import com.sonnyshih.mobilecloud.entity.FileType;
 import com.sonnyshih.mobilecloud.entity.ItemType;
 import com.sonnyshih.mobilecloud.entity.WebDavItemEntity;
 import com.sonnyshih.mobilecloud.manage.ApplicationManager;
+import com.sonnyshih.mobilecloud.manage.BonjourManage;
+import com.sonnyshih.mobilecloud.manage.BonjourManage.BonjourHanlder;
 import com.sonnyshih.mobilecloud.manage.WebDavManager;
 import com.sonnyshih.mobilecloud.ui.adapter.CloudFileListAdapter;
 import com.sonnyshih.mobilecloud.util.FileUtil;
@@ -50,8 +51,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class CloudFragment extends BaseFragment implements OnItemClickListener,
-		OnClickListener, MultiChoiceModeListener {
-
+		OnClickListener, MultiChoiceModeListener, BonjourHanlder {
+	
+	private AlertDialog retryAlertDialog;
+	private BonjourManage bonjourManage;
+	
 	public static String BUNDLE_STRING_CURRENT_PATH = "BUNDLE_STRING_CURRENT_PATH";
 	public static String BUNDLE_ARRAYLIST_WEBDAV_ITEM_ENTITIES = "BUNDLE_ARRAYLIST_WEBDAV_ITEM_ENTITIES";
 	public static String BUNDLE_ARRAYLIST_AUDIO_WEBDAV_ITEM_ENTITIES = "BUNDLE_ARRAYLIST_AUDIO_WEBDAV_ITEM_ENTITIES";
@@ -96,10 +100,21 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 	private String audioPlayerClassName = AudioPlayerService.class.getName();
 	
+//	@Override
+//	public void onStart() {
+//		super.onStart();
+//		detectBonjourDataThread =  new DetectBonjourDataThread();
+//		detectBonjourDataThread.start();
+//	}
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setHasOptionsMenu(true);
+		showProgressDialog("Waiting", "Discovering the Mobile Cloud...");
+
+		bonjourManage = new BonjourManage(this);
+		
 	}
 
 	@Override
@@ -136,38 +151,13 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		fileListView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
 		fileListView.setMultiChoiceModeListener(this);
 
-		
 		return view;
 	}
 
 	@Override
 	public void onResume() {
 		super.onResume();
-		
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				boolean isGetDriveIp = MainActivity.isGetDriveIp;
-				int count = 0;
-				while (!isGetDriveIp) {
-					try {
-						if (count>3) {
-//							Log.d("Mylog", "Please check your Mobile Cloud.");
-							break;
-						}
-						Thread.sleep(1000);
-						count++;
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-
-				initWebDav();
-				showFileList(currentPath);
-
-			}
-		}).start();
-
+		bonjourManage.startBonjour();
 	}
 
 	@Override
@@ -232,13 +222,15 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		String port = ApplicationManager.getInstance().getDrivePort();
 		String username = ApplicationManager.getInstance().getWebDavUsername();
 		String password = ApplicationManager.getInstance().getWebDavPassword();
-
-		webDavManager = WebDavManager.getInstance();
-		webDavManager.setHost(host);
-		webDavManager.setPort(port);
-		webDavManager.setUsername(username);
-		webDavManager.setPassword(password);
-		webDavManager.settingWebdave();
+		
+		if (!StringUtil.isEmpty(host)) {
+			webDavManager = WebDavManager.getInstance();
+			webDavManager.setHost(host);
+			webDavManager.setPort(port);
+			webDavManager.setUsername(username);
+			webDavManager.setPassword(password);
+			webDavManager.settingWebdave();
+		}
 
 	}
 
@@ -291,12 +283,12 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 					getActivity().runOnUiThread(new Runnable() {
 						@Override
 						public void run() {
-							progressBar.setVisibility(View.GONE);
+							progressBar.setVisibility(View.VISIBLE);
 							fileListView.setVisibility(View.GONE);
 							showErrorAlertDialog("Please Check your storages.");
 							showMenu(false);
 							currentPath = "";
-							showFileList(currentPath);
+							bonjourManage.startBonjour();
 						}
 					});
 					return;
@@ -369,6 +361,25 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 	}
 
+	private boolean isDetectBonjourData = false;
+	class DetectBonjourDataThread extends Thread {
+
+		@Override
+		public void run() {
+			super.run();
+			isDetectBonjourData = true;
+			while (isDetectBonjourData) {
+				try {
+					Thread.sleep(1500);
+					initWebDav();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+	} 
+	
 	private WebDavItemEntity ganerateDavItemEntity(
 			MultiStatusResponse multiStatusResponse) {
 
@@ -672,8 +683,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		
 	}
 	
-	
-	
 	private void moveWebDaveItem(final ArrayList<WebDavItemEntity> moveWebDavItemEntities){
 		
 		// Can not move self folder into self folder.
@@ -876,26 +885,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		
 		showFileList(currentPath);
 	}
-	
-//	private boolean isDetectStorage = false;
-//	private Thread detectStorage = new Thread(new Runnable() {
-//		
-//		@Override
-//		public void run() {
-//			isDetectStorage = true;
-//			
-//			while (isDetectStorage) {
-////				try {
-////					Thread.sleep(500);
-//					Log.d("Mylog", "DetectStorage");
-//					showFileList(currentPath);
-////				} catch (InterruptedException e) {
-////					e.printStackTrace();
-////				}
-//			}
-//		}
-//	});
-	
 	
 	private void onActionModeCopyClick(){
 		
@@ -1157,4 +1146,69 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 	}
 
+	@Override
+	public void doRouterExcute(String mobileCloudName, String routerIp,
+			String routerPort, String routerMac) {
+
+		if (!StringUtil.isEmpty(routerIp)) {
+			ApplicationManager.getInstance().setRouterMobileCloudName(
+					mobileCloudName);
+			ApplicationManager.getInstance().setRouterIp(routerIp);
+			ApplicationManager.getInstance().setRouterPort(routerPort);
+			ApplicationManager.getInstance().setRouterMac(routerMac);
+		}
+
+	}
+
+	@Override
+	public void doDriveExcute(String mobileCloudName, String driveIp,
+			String drivePort, String driveMac) {
+
+		if (!StringUtil.isEmpty(driveIp)) {
+			ApplicationManager.getInstance().setDriveMobileCloudName(
+					mobileCloudName);
+			ApplicationManager.getInstance().setDriveIp(driveIp);
+			ApplicationManager.getInstance().setDrivePort(drivePort);
+			ApplicationManager.getInstance().setDriveMac(driveMac);
+
+			dismissProgressDialog();
+			initWebDav();
+			showFileList(currentPath);
+		}
+
+	}
+
+	@Override
+	public void doErrorExcute(String errorMessage) {
+		
+		dismissProgressDialog();
+		showRetryAlertDialog(errorMessage);
+		
+	}
+
+	
+	private void showRetryAlertDialog(String message) {
+
+		retryAlertDialog = new AlertDialog.Builder(getActivity())
+				.setTitle(R.string.app_name)
+				.setIcon(android.R.drawable.ic_menu_info_details)
+				.setPositiveButton(R.string.retry,
+						new DialogInterface.OnClickListener() {
+
+							@Override
+							public void onClick(DialogInterface dialog,
+									int which) {
+
+								showProgressDialog("Waiting",
+										"Discovering the Mobile Cloud...");
+								showMenu(false);
+								currentPath = "";
+								bonjourManage.startBonjour();
+								// waitingForBonjourData();
+							}
+						}).setCancelable(false).create();
+
+		retryAlertDialog.setMessage(message);
+		retryAlertDialog.show();
+	}	
 }

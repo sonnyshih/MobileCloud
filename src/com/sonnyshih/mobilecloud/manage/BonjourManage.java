@@ -7,6 +7,9 @@ import java.net.UnknownHostException;
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceEvent;
 import javax.jmdns.ServiceListener;
+
+import android.util.Log;
+
 import com.sonnyshih.mobilecloud.util.StringUtil;
 
 public class BonjourManage {
@@ -47,8 +50,9 @@ public class BonjourManage {
 
 	}
 
-	
 	class BonjourServiceListener implements ServiceListener {
+
+		@Override
 		public void serviceAdded(ServiceEvent event) {
 			// System.out.println("Service added   : " + event.getName() + "." +
 			// event.getType());
@@ -56,19 +60,21 @@ public class BonjourManage {
 			// event.getType());
 		}
 
+		@Override
 		public void serviceRemoved(ServiceEvent event) {
 			// System.out.println("Service removed : " + event.getName() + "." +
 			// event.getType());
 			// Log.d("Mylog","Service removed : " + event.getName() + "." +
 			// event.getType());
-		}// End serviceRemoved
+		}
 
+		@Override
 		public void serviceResolved(ServiceEvent event) {
 			String mobileCloudName = event.getName();
 			String ip = event.getInfo().getPropertyString("ip");
 			String port = event.getInfo().getPropertyString("port");
 			String mac = event.getInfo().getPropertyString("mac");
-
+			
 			if (event.getInfo().getType().equals(ROUTER_TYPE)) {
 				bonjourHanlder.doRouterExcute(mobileCloudName, ip, port, mac);
 				jmDNS.removeServiceListener(ROUTER_TYPE, bonjourServiceListener);
@@ -79,9 +85,9 @@ public class BonjourManage {
 				jmDNS.removeServiceListener(DRIVE_TYPE, bonjourServiceListener);
 			}
 			
-		}// End serviceResolved
-	}// End SampleListener
-	
+		}
+		
+	}
 	
 	public interface BonjourHanlder {
 		public void doRouterExcute(String mobileCloudName, String routerIp, String routerPort, String routerMac);

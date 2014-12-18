@@ -8,6 +8,7 @@ public class ActionModeFileEntity implements Serializable{
 	private static final long serialVersionUID = -3229990098346091099L;
 
 	private File file;
+	private boolean isExsitOnWebDav = false;
 	private boolean isChecked = false;
 	
 	public File getFile() {
@@ -25,6 +26,13 @@ public class ActionModeFileEntity implements Serializable{
 	public void setChecked(boolean isChecked) {
 		this.isChecked = isChecked;
 	}
-	
+
+	public boolean isExsitOnWebDav() {
+		return isExsitOnWebDav;
+	}
+
+	public void setExsitOnWebDav(boolean isExsitOnWebDav) {
+		this.isExsitOnWebDav = isExsitOnWebDav;
+	}
 	
 }

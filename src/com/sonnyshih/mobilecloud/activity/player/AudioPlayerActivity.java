@@ -66,13 +66,13 @@ public class AudioPlayerActivity extends BaseFragmentActivity implements
 	@Override
 	public void onResume() {
 		super.onResume();
-		
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				startAudioPlayerService();
-			}
-		}).start();
+		startAudioPlayerService();
+	}
+
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+		unbindService(this);
 	}
 
 	private void init(){
@@ -120,7 +120,6 @@ public class AudioPlayerActivity extends BaseFragmentActivity implements
 	public void onBackPressed() {
 		super.onBackPressed();
 		isThreadEnable = false;
-		unbindService(this);
 		finish();
 	}
 

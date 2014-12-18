@@ -10,15 +10,19 @@ import com.sonnyshih.mobilecloud.base.BaseFragmentActivity;
 import com.sonnyshih.mobilecloud.entity.ActionModeFileEntity;
 import com.sonnyshih.mobilecloud.entity.WebDavItemEntity;
 import com.sonnyshih.mobilecloud.fragment.home.CloudFragment;
-import com.sonnyshih.mobilecloud.manage.WebDavManager;
+import com.sonnyshih.mobilecloud.manage.ApplicationManager;
 import com.sonnyshih.mobilecloud.manage.WebDavManager.UploadHandler;
 import com.sonnyshih.mobilecloud.ui.adapter.LocalFileListAdapter;
 import com.sonnyshih.mobilecloud.util.FileUtil;
 
 import android.app.AlertDialog;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.view.ActionMode;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -37,9 +41,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 public class UploadFileActivity extends BaseFragmentActivity implements
-		OnClickListener, OnItemClickListener, MultiChoiceModeListener, UploadHandler {
-	
-	private boolean isStopUpload = true;
+		OnClickListener, OnItemClickListener, MultiChoiceModeListener,
+		UploadHandler, ServiceConnection {
 	
 	private Button cancelButton;
 	private ListView listView;
@@ -54,14 +57,15 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 	
 	private String currentPath;
 	private ArrayList<WebDavItemEntity> webDavItemEntities;
-	private Thread uploadFileThread;
 	private AlertDialog uploadProgressAlertDialog;
 	
-	private int currentNumber = 0;
 	private TextView currentFileNameTextView;
 	private TextView currentNumberTextView;
 	private TextView totalTextView;
 	private ProgressBar progressBar;
+	
+	private String uploadFileServiceClassName = UploadFileService.class.getName();
+	private UploadFileService uploadFileService;
 	
 	@Override
 	protected void onStart() {
@@ -94,9 +98,26 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 		listView.setOnItemClickListener(this);
 		listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
 		listView.setMultiChoiceModeListener(this);
-
 		
 		getForderAndFileList(null);
+	}
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+		startUploadFileService();
+	}
+
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+		unbindService(this);
+	}
+
+	@Override
+	public void onBackPressed() {
+		super.onBackPressed();
+		finish();
 	}
 
 	private void showBackArrowLayout(){
@@ -162,50 +183,43 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 	}
 
 	
-	private void uploadFile(final ArrayList<ActionModeFileEntity> fileArrayList){
+	private void uploadFile(final ArrayList<ActionModeFileEntity> uploadFileArrayList){
 		
 		ShowUploadFileProgressDialog();
-		currentNumber = 0;
-		totalTextView.setText(Integer.toString(fileArrayList.size()));
-		isStopUpload = false;
+
+		uploadFileService.startUpload(currentPath, uploadFileArrayList);
 		
-		uploadFileThread = new Thread(new Runnable() {
+		new Thread(new Runnable() {
 			
 			@Override
 			public void run() {
 				
-				for (ActionModeFileEntity actionModeFileEntity : fileArrayList) {
-					
-					progressBar.setMax((int) actionModeFileEntity.getFile().length());
-
-					// stop uploading file;
-					if (isStopUpload) {
-						return;
-					}
-					
-					final String fileName = actionModeFileEntity.getFile().getName();
-					String uploadPath = currentPath;
-					String fileLocalPath = actionModeFileEntity.getFile().getPath();
+				while (uploadFileService.isNotCompleted()) {
 					
 					runOnUiThread(new Runnable() {
 						@Override
 						public void run() {
-							currentNumber++;
-							currentNumberTextView.setText(Integer.toString(currentNumber));
-							currentFileNameTextView.setText(fileName);
+							totalTextView.setText(Integer
+									.toString(uploadFileService
+											.getUploadFileArrayList().size()));
+
+							currentNumberTextView.setText(Integer
+									.toString(uploadFileService
+											.getCurrentNumber()));
+
+							currentFileNameTextView.setText(uploadFileService
+									.getCurrentUploadFile().getName());
+
 						}
 					});
 
-					progressBar.setProgress(0);
+					progressBar.setMax((int) uploadFileService
+							.getCurrentUploadFile().length());
 					
-					boolean isExsitOnWebDav = isExsitOnWebDav(fileName);
+					progressBar.setProgress(uploadFileService.getProgress());
 					
-					WebDavManager.getInstance().uploadFile(
-							UploadFileActivity.this, isExsitOnWebDav, fileName,
-							uploadPath, fileLocalPath);
-
+					
 				}
-
 				
 				if (actionMode != null) {
 					runOnUiThread(new Runnable() {
@@ -217,11 +231,10 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 						}
 					});
 				}
-
+				
 			}
-		});		
+		}).start();
 		
-		uploadFileThread.start();
 	}
 
 	private boolean isExsitOnWebDav(String fileName){
@@ -274,13 +287,7 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 	
 	private void dismissUploadFileProgressDialog(){
 		
-		isStopUpload = true;
-		
-		// Abort uploading files.
-		if (WebDavManager.getInstance().getPutMethod() != null) {
-			WebDavManager.getInstance().getPutMethod().abort();
-			WebDavManager.getInstance().setPutMethod(null);
-		}
+		uploadFileService.stopUpload();
 		
 		localFileListAdapter.cleanAllSelected();
 		if (actionMode != null) {
@@ -292,12 +299,19 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 		}
 	}
 	
-	@Override
-	public void onBackPressed() {
-		super.onBackPressed();
-		finish();
-	}
+	
+	private void startUploadFileService(){
+		Intent intent = new Intent(this, UploadFileService.class);
+		
+		if (!ApplicationManager.getInstance().isServiceRunning(
+				uploadFileServiceClassName)) {
+			startService(intent);
+		}
+		
+		bindService(intent, this, Context.BIND_AUTO_CREATE);
 
+	}
+	
 	@Override
 	public void onItemClick(AdapterView<?> parent, View view, int position,
 			long id) {
@@ -356,6 +370,11 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 			for (ActionModeFileEntity actionModeFileEntity : fileArrayList) {
 				
 				if (actionModeFileEntity.isChecked()){
+					
+					boolean isExsitOnWebDav = isExsitOnWebDav(actionModeFileEntity
+							.getFile().getName());
+					actionModeFileEntity.setExsitOnWebDav(isExsitOnWebDav);
+					
 					uploadFileArrayList.add(actionModeFileEntity);
 				}
 			}
@@ -398,6 +417,19 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 	@Override
 	public void getMessage(int statusCode, String statusText) {
 		// HttpURLConnection.HTTP_CREATED, 
+	}
+
+	
+	@Override
+	public void onServiceConnected(ComponentName name, IBinder service) {
+		uploadFileService = ((UploadFileService.ServiceBinder) service)
+				.getService();
+
+	}
+
+	@Override
+	public void onServiceDisconnected(ComponentName name) {
+		uploadFileService = null;
 	}
 	
 }

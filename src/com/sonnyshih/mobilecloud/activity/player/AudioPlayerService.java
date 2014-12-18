@@ -20,7 +20,6 @@ import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnErrorListener;
 import android.os.Binder;
 import android.os.IBinder;
-import android.util.Log;
 
 public class AudioPlayerService extends Service implements
 		OnCompletionListener, OnErrorListener, OnBufferingUpdateListener {

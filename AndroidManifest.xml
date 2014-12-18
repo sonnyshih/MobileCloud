@@ -38,6 +38,8 @@
             android:name="com.sonnyshih.mobilecloud.activity.uploadfile.UploadFileActivity"
             android:configChanges="orientation|keyboardHidden|navigation|screenSize"/>
         
+        <service android:name=".activity.uploadfile.UploadFileService"></service>
+        
         
         <activity
             android:name=".activity.player.AudioPlayerActivity"

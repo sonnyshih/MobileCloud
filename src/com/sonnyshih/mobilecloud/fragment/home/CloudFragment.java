@@ -100,13 +100,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 	private String audioPlayerClassName = AudioPlayerService.class.getName();
 	
-//	@Override
-//	public void onStart() {
-//		super.onStart();
-//		detectBonjourDataThread =  new DetectBonjourDataThread();
-//		detectBonjourDataThread.start();
-//	}
-
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);

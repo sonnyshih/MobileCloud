@@ -1,9 +1,7 @@
 package com.sonnyshih.mobilecloud.activity.uploadfile;
 
-
 import java.io.File;
 import java.util.ArrayList;
-
 import com.sonnyshih.mobilecloud.entity.ActionModeFileEntity;
 import com.sonnyshih.mobilecloud.manage.WebDavManager;
 import com.sonnyshih.mobilecloud.manage.WebDavManager.UploadHandler;
@@ -12,13 +10,11 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
-import android.util.Log;
 
 public class UploadFileService extends Service implements UploadHandler{
 	private final IBinder serviceBinder = new ServiceBinder();
 	
 	private ArrayList<ActionModeFileEntity> uploadFileArrayList;
-	private boolean isNotCompleted = true;
 	private boolean isStopUpload = true;
 	private int progress = 0;
 	private File currentUploadFile;
@@ -28,8 +24,8 @@ public class UploadFileService extends Service implements UploadHandler{
 		return uploadFileArrayList;
 	}
 
-	public boolean isNotCompleted() {
-		return isNotCompleted;
+	public boolean isStopUpload() {
+		return isStopUpload;
 	}
 
 	public int getProgress() {
@@ -67,16 +63,15 @@ public class UploadFileService extends Service implements UploadHandler{
 			@Override
 			public void run() {
 				currentNumber = 0;
-				isNotCompleted = true;
 				isStopUpload = false;
 				
 				for (ActionModeFileEntity actionModeFileEntity : uploadFileArrayList) {
 					currentNumber++;
 					currentUploadFile = actionModeFileEntity.getFile();
 					progress = 0;
+					
 					// stop uploading file;
 					if (isStopUpload) {
-						isNotCompleted = false;
 						return;
 					}
 					
@@ -84,19 +79,21 @@ public class UploadFileService extends Service implements UploadHandler{
 					String fileName = actionModeFileEntity.getFile().getName();
 					String fileLocalPath = actionModeFileEntity.getFile().getPath();
 					
+					WebDavManager.getInstance().setAbort(false);
 					WebDavManager.getInstance().uploadFile(
 							UploadFileService.this, isExsitOnWebDav, fileName,
 							uploadPath, fileLocalPath);
 
 				}				
 				
-				isNotCompleted = false;
+				isStopUpload = true;
 			}
 		}).start();
 	}
 	
 	public void stopUpload(){
 		isStopUpload = true;
+		WebDavManager.getInstance().setAbort(true);
 	}
 	
 	@Override

@@ -229,7 +229,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 			webDavManager.setPort(port);
 			webDavManager.setUsername(username);
 			webDavManager.setPassword(password);
-			webDavManager.settingWebdave();
+			webDavManager.initWebdave();
 		}
 
 	}
@@ -655,6 +655,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 						}
 					}
 					
+					WebDavManager.getInstance().setAbort(false);
 					WebDavManager.getInstance().copyWebDavItem(
 							copyWebDavItemEntity.getUrl(), currentPath,
 							destinationName);
@@ -728,6 +729,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 					handleProgressBar.setProgress(currentNumber);
 					
+					WebDavManager.getInstance().setAbort(false);
 					WebDavManager.getInstance().moveWebDavItem(
 							moveWebDavItemEntity.getUrl(), currentPath,
 							webDavItemName);
@@ -789,6 +791,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 					});
 
 					handleProgressBar.setProgress(currentNumber);
+					WebDavManager.getInstance().setAbort(false);
 					WebDavManager.getInstance().deleteWebDavItem(webDavItemEntity.getUrl());
 					try {
 						Thread.sleep(500);
@@ -854,26 +857,11 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		
 		cloudFileListAdapter.cleanAllSelected();
 
+		WebDavManager.getInstance().setAbort(true);
+		
 		isStopCopy = true;
-		// Abort coping files.
-		if (WebDavManager.getInstance().getCopyMethod() != null) {
-			WebDavManager.getInstance().getCopyMethod().abort();
-			WebDavManager.getInstance().setCopyMethod(null);
-		}
-		
 		isStopMove = true;
-		// Abort moving files.
-		if (WebDavManager.getInstance().getMoveMethod() !=null) {
-			WebDavManager.getInstance().getMoveMethod().abort();
-			WebDavManager.getInstance().setMoveMethod(null);
-		}
-		
 		isStopDelete = true;
-		// Abort deleting files.
-		if (WebDavManager.getInstance().getDeleteMethod() != null) {
-			WebDavManager.getInstance().getDeleteMethod().abort();
-			WebDavManager.getInstance().setDeleteMethod(null);
-		}
 		
 		if (actionMode != null) {
 			actionMode.finish();

@@ -42,7 +42,7 @@ import android.widget.TextView;
 
 public class UploadFileActivity extends BaseFragmentActivity implements
 		OnClickListener, OnItemClickListener, MultiChoiceModeListener,
-		UploadHandler, ServiceConnection {
+		ServiceConnection {
 	
 	private Button cancelButton;
 	private ListView listView;
@@ -194,7 +194,7 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 			@Override
 			public void run() {
 				
-				while (uploadFileService.isNotCompleted()) {
+				while (!uploadFileService.isStopUpload()) {
 					
 					runOnUiThread(new Runnable() {
 						@Override
@@ -221,16 +221,12 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 					
 				}
 				
-				if (actionMode != null) {
-					runOnUiThread(new Runnable() {
-						@Override
-						public void run() {
-							localFileListAdapter.cleanAllSelected();
-							actionMode.finish();
-							dismissUploadFileProgressDialog();
-						}
-					});
-				}
+				runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						dismissUploadFileProgressDialog();
+					}
+				});				
 				
 			}
 		}).start();
@@ -254,7 +250,6 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 	private void ShowUploadFileProgressDialog(){
 		LayoutInflater layoutInflater = LayoutInflater.from(this);
 		View uploadFileView = layoutInflater.inflate(R.layout.handle_file_progress_dialog, null);
-		
 		
 		currentFileNameTextView = (TextView) uploadFileView
 				.findViewById(R.id.handleFileProgressDialog_currentFileNameTextView);
@@ -409,17 +404,6 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 
 	}
 
-	@Override
-	public void getProgress(int progress) {
-		progressBar.setProgress(progress);
-	}
-
-	@Override
-	public void getMessage(int statusCode, String statusText) {
-		// HttpURLConnection.HTTP_CREATED, 
-	}
-
-	
 	@Override
 	public void onServiceConnected(ComponentName name, IBinder service) {
 		uploadFileService = ((UploadFileService.ServiceBinder) service)

@@ -13,6 +13,7 @@ import com.sonnyshih.mobilecloud.R;
 import com.sonnyshih.mobilecloud.activity.player.AudioPlayerActivity;
 import com.sonnyshih.mobilecloud.activity.player.AudioPlayerService;
 import com.sonnyshih.mobilecloud.activity.uploadfile.UploadFileActivity;
+import com.sonnyshih.mobilecloud.activity.uploadfile.WebDaveService;
 import com.sonnyshih.mobilecloud.base.BaseFragment;
 import com.sonnyshih.mobilecloud.entity.FileType;
 import com.sonnyshih.mobilecloud.entity.ItemType;
@@ -26,9 +27,13 @@ import com.sonnyshih.mobilecloud.util.FileUtil;
 import com.sonnyshih.mobilecloud.util.StringUtil;
 
 import android.app.AlertDialog;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.ActionMode;
 import android.view.LayoutInflater;
@@ -50,8 +55,12 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class CloudFragment extends BaseFragment implements OnItemClickListener,
-		OnClickListener, MultiChoiceModeListener, BonjourHanlder {
+public class CloudFragment extends BaseFragment implements ServiceConnection,
+		OnItemClickListener, OnClickListener, MultiChoiceModeListener,
+		BonjourHanlder {
+	
+	private String webDavServiceClassName = WebDaveService.class.getName();
+	private WebDaveService webDaveService;
 	
 	private AlertDialog retryAlertDialog;
 	private BonjourManage bonjourManage;
@@ -151,6 +160,7 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	public void onResume() {
 		super.onResume();
 		bonjourManage.startBonjour();
+		startWebDaveService();
 	}
 
 	@Override
@@ -596,6 +606,58 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		return isSame;
 	}
 	
+	private void downloadWebDaveItem(final ArrayList<WebDavItemEntity> downloadWebDavItemEntities) {
+
+		showHandleWebDavItemProgressDialog("Downloading...");
+		webDaveService.startDownload(downloadWebDavItemEntities);
+		
+		new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				
+				while (!webDaveService.isStopDownload()) {
+					
+					getActivity().runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							totalTextView.setText(Integer
+									.toString(webDaveService
+											.getDownloadWebDavItemEntities().size()));
+
+							currentNumberTextView.setText(Integer
+									.toString(webDaveService
+											.getCurrentNumber()));
+
+							currentFileNameTextView.setText(webDaveService
+									.getCurrentDownloadFileName());
+
+						}
+					});
+
+					handleProgressBar.setMax((int) webDaveService
+							.getDownloadFileLength());
+					
+					handleProgressBar.setProgress((int) webDaveService
+							.getDownloadFileProgress());
+					
+				}
+				
+				if (actionMode != null) {
+					getActivity().runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							cloudFileListAdapter.cleanAllSelected();
+							dismissHandleWebDavItemProgressDialog();
+						}
+					});
+				}
+
+				
+			}
+		}).start();
+	}
+	
 	private void copyWebDaveItem(final ArrayList<WebDavItemEntity> copyWebDavItemEntities){
 
 		// Can not copy self folder into self folder.
@@ -800,7 +862,6 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 						@Override
 						public void run() {
 							cloudFileListAdapter.cleanAllSelected();
-							actionMode.finish();
 							dismissHandleWebDavItemProgressDialog();
 						}
 					});
@@ -849,8 +910,8 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	private void dismissHandleWebDavItemProgressDialog(){
 		
 		cloudFileListAdapter.cleanAllSelected();
-
 		WebDavManager.getInstance().setAbort(true);
+		webDaveService.stopDownload();
 		
 		isStopCopy = true;
 		isStopMove = true;
@@ -865,6 +926,12 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 		}
 		
 		showFileList(currentPath);
+	}
+	
+	
+	private void onActionModeDownloadClick(){
+		selectedWebDavItemEntities = getSelectedWebDavItemEntities();
+		downloadWebDaveItem(selectedWebDavItemEntities);
 	}
 	
 	private void onActionModeCopyClick(){
@@ -999,6 +1066,17 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 	}
 	
+	private void startWebDaveService(){
+		Intent intent = new Intent(getActivity(), WebDaveService.class);
+		
+		if (!ApplicationManager.getInstance().isServiceRunning(
+				webDavServiceClassName)) {
+			getActivity().startService(intent);
+		}
+		
+		getActivity().bindService(intent, this, Context.BIND_AUTO_CREATE);
+
+	}
 	
 	@Override
 	public void onItemClick(AdapterView<?> parent, View view, int position,
@@ -1092,6 +1170,10 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 	@Override
 	public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
         switch (item.getItemId()) {
+		case R.id.cloudManageMenu_download:
+			onActionModeDownloadClick();
+			return true;
+			
 		case R.id.cloudManageMenu_copy:
 			onActionModeCopyClick();
 			return true;
@@ -1191,5 +1273,17 @@ public class CloudFragment extends BaseFragment implements OnItemClickListener,
 
 		retryAlertDialog.setMessage(message);
 		retryAlertDialog.show();
-	}	
+	}
+
+	@Override
+	public void onServiceConnected(ComponentName name, IBinder service) {
+		webDaveService = ((WebDaveService.ServiceBinder) service).getService();
+
+	}
+
+	@Override
+	public void onServiceDisconnected(ComponentName name) {
+		webDaveService = null;
+
+	}
 }

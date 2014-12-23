@@ -5,7 +5,6 @@ import com.sonnyshih.mobilecloud.manage.ApplicationManager;
 
 import android.app.ActivityManager;
 import android.app.Application;
-import android.app.ActivityManager.RunningServiceInfo;
 import android.content.Context;
 
 public class MobileCloudApp extends Application{
@@ -18,11 +17,11 @@ public class MobileCloudApp extends Application{
 		
 		setupDebugMode(true);
 		
+		ApplicationManager.getInstance().createDownloadFolder();
 		ApplicationManager.getInstance().setContext(this);
 		ApplicationManager.getInstance().setAppVersion(getAppVersion());
 		ApplicationManager.getInstance().setActivityManager(
 				(ActivityManager) getSystemService(Context.ACTIVITY_SERVICE));
-
 	}
 
 	private String getAppVersion() {

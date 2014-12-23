@@ -2,6 +2,7 @@ package com.sonnyshih.mobilecloud.manage;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 
 import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpClient;
@@ -12,6 +13,7 @@ import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.DeleteMethod;
 import org.apache.commons.httpclient.methods.FileRequestEntity;
+import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
 import org.apache.jackrabbit.webdav.DavConstants;
 import org.apache.jackrabbit.webdav.DavException;
@@ -23,14 +25,12 @@ import org.apache.jackrabbit.webdav.client.methods.MoveMethod;
 import org.apache.jackrabbit.webdav.client.methods.PropFindMethod;
 import org.apache.jackrabbit.webdav.client.methods.PutMethod;
 
-
-
 import android.net.Uri;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
-import com.sonnyshih.mobilecloud.upload.UploadRequestEntity;
-import com.sonnyshih.mobilecloud.upload.UploadRequestEntity.ProgressListener;
+import com.sonnyshih.mobilecloud.entity.UploadRequestEntity;
+import com.sonnyshih.mobilecloud.entity.UploadRequestEntity.ProgressListener;
 import com.sonnyshih.mobilecloud.util.StringUtil;
 
 public class WebDavManager {
@@ -43,6 +43,7 @@ public class WebDavManager {
 	private String username;
 	private String password;
 	private boolean isAbort = false;
+	private GetMethod getMethod;
 	
 	public WebDavManager(){
 		
@@ -93,6 +94,10 @@ public class WebDavManager {
 
 	public void setAbort(boolean isAbort) {
 		this.isAbort = isAbort;
+	}
+
+	public GetMethod getGetMethod() {
+		return getMethod;
 	}
 
 	public void initWebdave(){
@@ -187,7 +192,7 @@ public class WebDavManager {
 
 					@Override
 					public void transferred(long num) {
-						uploadHandler.getProgress((int) num);
+						uploadHandler.getUploadProgress((int) num);
 						if (isAbort) {
 							putMethod.abort();
 						}
@@ -198,7 +203,7 @@ public class WebDavManager {
 
 		try {
 			httpClient.executeMethod(putMethod);
-			uploadHandler.getMessage(putMethod.getStatusCode(),
+			uploadHandler.getUploadMessage(putMethod.getStatusCode(),
 					putMethod.getStatusText());
 			
 //			Log.d("Mylog", putMethod.getStatusCode() + " : " + putMethod.getStatusText());
@@ -223,6 +228,48 @@ public class WebDavManager {
 		String fileExtension = MimeTypeMap.getFileExtensionFromUrl(selectedUri.toString());
 	    String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(fileExtension);
 	    return mimeType;
+	}
+	
+	public void downloadFile(DownloadHandler downloadHandler, String fileName, String path) {
+
+		getMethod = new GetMethod(path);
+		
+        try {
+        	httpClient.executeMethod(getMethod);
+        	
+        	
+//        	new Thread(new Runnable() {
+//				
+//				@Override
+//				public void run() {
+//					while (!isAbort) {
+//						Log.d("Mylog", "Not abort");
+//					}
+//					getMethod.abort();
+//					Log.d("Mylog", "abort");
+//				}
+//			}).start();
+        	
+        	
+			downloadHandler.getDownloadInputStream(fileName,
+					getMethod.getResponseBodyAsStream(),
+					getMethod.getResponseContentLength());
+
+			downloadHandler.getDownloadMessage(getMethod.getStatusCode(),
+					getMethod.getStatusText());        	
+
+//			InputStream is = getmethod.getResponseBodyAsStream();
+//			long fileLength = getmethod.getResponseContentLength();
+//			hm.put("inputStream",is);
+//			hm.put("fileLength", new Long(fileLength));
+		} catch (HttpException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			getMethod.releaseConnection();
+		}
+
 	}
 	
 	// copy webdav file
@@ -306,8 +353,13 @@ public class WebDavManager {
 	
 	
 	public interface UploadHandler {
-		public void getProgress(int progress);
-		public void getMessage(int statusCode, String statusText);
+		public void getUploadProgress(int uploadFileProgress);
+		public void getUploadMessage(int statusCode, String statusText);
+	}
+	
+	public interface DownloadHandler {
+		public void getDownloadInputStream(String fileName, InputStream downloadFileInputStream, long downloadFileLength);
+		public void getDownloadMessage(int statusCode, String statusText);
 	}
 	
 }

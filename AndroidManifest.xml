@@ -37,7 +37,7 @@
             android:name="com.sonnyshih.mobilecloud.activity.uploadfile.UploadFileActivity"
             android:configChanges="orientation|keyboardHidden|navigation|screenSize"/>
         
-        <service android:name=".activity.uploadfile.UploadFileService"></service>
+        <service android:name=".activity.uploadfile.WebDaveService"></service>
         
         
         <activity

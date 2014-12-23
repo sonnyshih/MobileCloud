@@ -1,4 +1,4 @@
-package com.sonnyshih.mobilecloud.upload;
+package com.sonnyshih.mobilecloud.entity;
 
 import java.io.FilterOutputStream;
 import java.io.IOException;

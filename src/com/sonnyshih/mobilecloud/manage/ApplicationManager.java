@@ -1,5 +1,9 @@
 package com.sonnyshih.mobilecloud.manage;
 
+import java.io.File;
+
+import com.sonnyshih.mobilecloud.util.FileUtil;
+
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningServiceInfo;
 import android.content.Context;
@@ -28,7 +32,8 @@ public class ApplicationManager {
 	private String appVersion;
 
 	private ActivityManager activityManager;
-
+	private String DOWNLOAD_FOLDER_NAME = "Mobile Cloud Download";
+	
 	private ApplicationManager() {
 	}
 
@@ -39,6 +44,17 @@ public class ApplicationManager {
 		return instance;
 	}
 
+	public void createDownloadFolder(){
+		File folder = new File(FileUtil.getStorageRootPath() + "/" + DOWNLOAD_FOLDER_NAME);
+		if (!folder.exists()) {
+			folder.mkdir();
+		}
+	}
+	
+	public String getDownloadFolderPath(){
+		return FileUtil.getStorageRootPath() + "/" + DOWNLOAD_FOLDER_NAME;
+	}
+	
 	public ActivityManager getActivityManager() {
 		return activityManager;
 	}

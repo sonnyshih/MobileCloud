@@ -11,7 +11,6 @@ import com.sonnyshih.mobilecloud.entity.ActionModeFileEntity;
 import com.sonnyshih.mobilecloud.entity.WebDavItemEntity;
 import com.sonnyshih.mobilecloud.fragment.home.CloudFragment;
 import com.sonnyshih.mobilecloud.manage.ApplicationManager;
-import com.sonnyshih.mobilecloud.manage.WebDavManager.UploadHandler;
 import com.sonnyshih.mobilecloud.ui.adapter.LocalFileListAdapter;
 import com.sonnyshih.mobilecloud.util.FileUtil;
 
@@ -64,8 +63,8 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 	private TextView totalTextView;
 	private ProgressBar progressBar;
 	
-	private String uploadFileServiceClassName = UploadFileService.class.getName();
-	private UploadFileService uploadFileService;
+	private String webDavServiceClassName = WebDaveService.class.getName();
+	private WebDaveService webDaveService;
 	
 	@Override
 	protected void onStart() {
@@ -105,7 +104,7 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 	@Override
 	protected void onResume() {
 		super.onResume();
-		startUploadFileService();
+		startWebDaveService();
 	}
 
 	@Override
@@ -187,36 +186,36 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 		
 		ShowUploadFileProgressDialog();
 
-		uploadFileService.startUpload(currentPath, uploadFileArrayList);
+		webDaveService.startUpload(currentPath, uploadFileArrayList);
 		
 		new Thread(new Runnable() {
 			
 			@Override
 			public void run() {
 				
-				while (!uploadFileService.isStopUpload()) {
+				while (!webDaveService.isStopUpload()) {
 					
 					runOnUiThread(new Runnable() {
 						@Override
 						public void run() {
 							totalTextView.setText(Integer
-									.toString(uploadFileService
+									.toString(webDaveService
 											.getUploadFileArrayList().size()));
 
 							currentNumberTextView.setText(Integer
-									.toString(uploadFileService
+									.toString(webDaveService
 											.getCurrentNumber()));
 
-							currentFileNameTextView.setText(uploadFileService
+							currentFileNameTextView.setText(webDaveService
 									.getCurrentUploadFile().getName());
 
 						}
 					});
 
-					progressBar.setMax((int) uploadFileService
+					progressBar.setMax((int) webDaveService
 							.getCurrentUploadFile().length());
 					
-					progressBar.setProgress(uploadFileService.getProgress());
+					progressBar.setProgress(webDaveService.getUploadFileProgress());
 					
 					
 				}
@@ -282,7 +281,7 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 	
 	private void dismissUploadFileProgressDialog(){
 		
-		uploadFileService.stopUpload();
+		webDaveService.stopUpload();
 		
 		localFileListAdapter.cleanAllSelected();
 		if (actionMode != null) {
@@ -295,11 +294,11 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 	}
 	
 	
-	private void startUploadFileService(){
-		Intent intent = new Intent(this, UploadFileService.class);
+	private void startWebDaveService(){
+		Intent intent = new Intent(this, WebDaveService.class);
 		
 		if (!ApplicationManager.getInstance().isServiceRunning(
-				uploadFileServiceClassName)) {
+				webDavServiceClassName)) {
 			startService(intent);
 		}
 		
@@ -406,14 +405,13 @@ public class UploadFileActivity extends BaseFragmentActivity implements
 
 	@Override
 	public void onServiceConnected(ComponentName name, IBinder service) {
-		uploadFileService = ((UploadFileService.ServiceBinder) service)
-				.getService();
+		webDaveService = ((WebDaveService.ServiceBinder) service).getService();
 
 	}
 
 	@Override
 	public void onServiceDisconnected(ComponentName name) {
-		uploadFileService = null;
+		webDaveService = null;
 	}
 	
 }

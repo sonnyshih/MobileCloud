@@ -14,14 +14,11 @@ import com.sonnyshih.mobilecloud.manage.ApplicationManager;
 import com.sonnyshih.mobilecloud.manage.WebDavManager;
 import com.sonnyshih.mobilecloud.manage.WebDavManager.DownloadHandler;
 import com.sonnyshih.mobilecloud.manage.WebDavManager.UploadHandler;
-import com.sonnyshih.mobilecloud.util.FileUtil;
 
 import android.app.Service;
 import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
-import android.provider.MediaStore.Files;
-import android.util.Log;
 
 public class WebDaveService extends Service implements UploadHandler,
 		DownloadHandler {

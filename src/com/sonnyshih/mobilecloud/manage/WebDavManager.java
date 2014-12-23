@@ -26,7 +26,6 @@ import org.apache.jackrabbit.webdav.client.methods.PropFindMethod;
 import org.apache.jackrabbit.webdav.client.methods.PutMethod;
 
 import android.net.Uri;
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import com.sonnyshih.mobilecloud.entity.UploadRequestEntity;
@@ -237,20 +236,6 @@ public class WebDavManager {
         try {
         	httpClient.executeMethod(getMethod);
         	
-        	
-//        	new Thread(new Runnable() {
-//				
-//				@Override
-//				public void run() {
-//					while (!isAbort) {
-//						Log.d("Mylog", "Not abort");
-//					}
-//					getMethod.abort();
-//					Log.d("Mylog", "abort");
-//				}
-//			}).start();
-        	
-        	
 			downloadHandler.getDownloadInputStream(fileName,
 					getMethod.getResponseBodyAsStream(),
 					getMethod.getResponseContentLength());
@@ -258,10 +243,6 @@ public class WebDavManager {
 			downloadHandler.getDownloadMessage(getMethod.getStatusCode(),
 					getMethod.getStatusText());        	
 
-//			InputStream is = getmethod.getResponseBodyAsStream();
-//			long fileLength = getmethod.getResponseContentLength();
-//			hm.put("inputStream",is);
-//			hm.put("fileLength", new Long(fileLength));
 		} catch (HttpException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
